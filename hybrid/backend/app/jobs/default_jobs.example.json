@@ -1,0 +1,293 @@
+{
+  "profiles": {
+    "standard": [
+      "immich_upload",
+      "immich_library",
+      "homepage_sync",
+      "pve_dump",
+      "frigate"
+    ],
+    "heavy": [
+      "full_photo"
+    ],
+    "all": [
+      "immich_upload",
+      "immich_library",
+      "homepage_sync",
+      "pve_dump",
+      "frigate",
+      "full_photo"
+    ]
+  },
+  "gotify": {
+    "enabled": false,
+    "url": null,
+    "token": null,
+    "default_priority": 5
+  },
+  "queues": {
+    "allow_parallel_profiles": false,
+    "allow_scheduler_queueing": false,
+    "allow_event_queueing": false
+  },
+  "clouds": [],
+  "jobs": [
+    {
+      "key": "immich_upload",
+      "order": 10,
+      "description": "Immich (mobile)",
+      "title": "Immich (mobile)",
+      "timeout_seconds": 1800,
+      "enabled": true,
+      "continue_on_error": true,
+      "kind": "backup",
+      "profile": "standard",
+      "schedule": {
+        "enabled": true,
+        "mode": "interval",
+        "interval_minutes": 1,
+        "hour": 3,
+        "minute": 0,
+        "weekdays": []
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "priority": null,
+        "custom_title": null
+      },
+      "source_path": "/media/photo/immich_library/upload/",
+      "cloud_key": null,
+      "destination_subpath": null,
+      "destination_path": "mail:/PHOTO/immich_library/upload/",
+      "transfer_mode": "copy",
+      "options": {
+        "max_age": null,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      },
+      "retention": {
+        "enabled": false,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      }
+    },
+    {
+      "key": "immich_library",
+      "order": 20,
+      "description": "copy /media/photo/immich_library/library -> mail:/PHOTO/immich_library/library/",
+      "title": "Immich (библиотека)",
+      "timeout_seconds": 1800,
+      "enabled": true,
+      "continue_on_error": true,
+      "kind": "backup",
+      "profile": "standard",
+      "schedule": {
+        "enabled": true,
+        "mode": "interval",
+        "interval_minutes": 1,
+        "hour": 3,
+        "minute": 0,
+        "weekdays": []
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "priority": null,
+        "custom_title": null
+      },
+      "source_path": "/media/photo/immich_library/library/",
+      "cloud_key": null,
+      "destination_subpath": null,
+      "destination_path": "mail:/PHOTO/immich_library/library/",
+      "transfer_mode": "copy",
+      "options": {
+        "max_age": null,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      },
+      "retention": {
+        "enabled": false,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      }
+    },
+    {
+      "key": "homepage_sync",
+      "order": 30,
+      "description": "Homepage",
+      "title": "Homepage",
+      "timeout_seconds": 1800,
+      "enabled": true,
+      "continue_on_error": true,
+      "kind": "backup",
+      "profile": "standard",
+      "schedule": {
+        "enabled": true,
+        "mode": "interval",
+        "interval_minutes": 1,
+        "hour": 3,
+        "minute": 0,
+        "weekdays": []
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "priority": null,
+        "custom_title": null
+      },
+      "source_path": "/srv/homepage/",
+      "cloud_key": null,
+      "destination_subpath": null,
+      "destination_path": "mail:/MYSPACE/BACKUPS/Proxmox/srv/homepage/",
+      "transfer_mode": "sync",
+      "options": {
+        "max_age": null,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      },
+      "retention": {
+        "enabled": false,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      }
+    },
+    {
+      "key": "pve_dump",
+      "order": 40,
+      "description": "copy fresh dump backups -> mail:/MYSPACE/BACKUPS/Proxmox",
+      "title": "Proxmox бекапы",
+      "timeout_seconds": 1800,
+      "enabled": true,
+      "continue_on_error": true,
+      "kind": "backup",
+      "profile": "standard",
+      "schedule": {
+        "enabled": true,
+        "mode": "interval",
+        "interval_minutes": 1,
+        "hour": 3,
+        "minute": 0,
+        "weekdays": []
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "priority": null,
+        "custom_title": null
+      },
+      "source_path": "/media/downloads/BACKUPS/dump/",
+      "cloud_key": null,
+      "destination_subpath": null,
+      "destination_path": "mail:/MYSPACE/BACKUPS/Proxmox",
+      "transfer_mode": "copy",
+      "options": {
+        "max_age": "7d",
+        "min_age": "15m",
+        "exclude": [
+          "*.dat",
+          "*.tmp"
+        ],
+        "extra_args": []
+      },
+      "retention": {
+        "enabled": true,
+        "min_age": "7d",
+        "exclude": [
+          "srv/homepage/**"
+        ],
+        "extra_args": []
+      }
+    },
+    {
+      "key": "frigate",
+      "order": 50,
+      "description": "Видеонаблюдение (frigate)",
+      "title": "Видеонаблюдение (frigate)",
+      "timeout_seconds": 1800,
+      "enabled": true,
+      "continue_on_error": true,
+      "kind": "backup",
+      "profile": "standard",
+      "schedule": {
+        "enabled": true,
+        "mode": "interval",
+        "interval_minutes": 1,
+        "hour": 3,
+        "minute": 0,
+        "weekdays": []
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "priority": null,
+        "custom_title": null
+      },
+      "source_path": "/media/cloud/frigate",
+      "cloud_key": null,
+      "destination_subpath": null,
+      "destination_path": "mail:/frigate",
+      "transfer_mode": "copy",
+      "options": {
+        "max_age": "7d",
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      },
+      "retention": {
+        "enabled": true,
+        "min_age": "7d",
+        "exclude": [],
+        "extra_args": []
+      }
+    },
+    {
+      "key": "full_photo",
+      "order": 80,
+      "description": "full daily copy /media/photo -> mail:/PHOTO",
+      "title": "Фото все",
+      "timeout_seconds": 43200,
+      "enabled": true,
+      "continue_on_error": true,
+      "kind": "backup",
+      "profile": "heavy",
+      "schedule": {
+        "enabled": true,
+        "mode": "daily",
+        "interval_minutes": 60,
+        "hour": 3,
+        "minute": 0,
+        "weekdays": []
+      },
+      "notifications": {
+        "on_success": false,
+        "on_failure": true,
+        "priority": null,
+        "custom_title": null
+      },
+      "source_path": "/media/photo/",
+      "cloud_key": null,
+      "destination_subpath": null,
+      "destination_path": "mail:/PHOTO/",
+      "transfer_mode": "copy",
+      "options": {
+        "max_age": null,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      },
+      "retention": {
+        "enabled": false,
+        "min_age": null,
+        "exclude": [],
+        "extra_args": []
+      }
+    }
+  ]
+}

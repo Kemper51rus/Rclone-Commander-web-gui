@@ -1,0 +1,2872 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rclone Backup Studio</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f1722;
+      --bg-accent: #182435;
+      --panel: rgba(18, 28, 42, 0.84);
+      --panel-strong: rgba(17, 25, 38, 0.96);
+      --line: rgba(141, 181, 212, 0.18);
+      --line-strong: rgba(141, 181, 212, 0.32);
+      --text: #eff8ff;
+      --muted: #9db2c8;
+      --soft: #7890aa;
+      --ok: #97ff3f;
+      --warn: #ffd66d;
+      --bad: #ff5a68;
+      --accent: #7ce0ff;
+      --accent-2: #96ffda;
+      --shadow: 0 24px 80px rgba(5, 12, 20, 0.35);
+      --radius: 24px;
+      --radius-sm: 16px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --sans: "Trebuchet MS", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: var(--sans);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(124, 224, 255, 0.18), transparent 30%),
+        radial-gradient(circle at 100% 20%, rgba(150, 255, 218, 0.12), transparent 28%),
+        linear-gradient(135deg, #0b1119 0%, #101927 35%, #132132 100%);
+      background-attachment: fixed;
+    }
+    .shell {
+      max-width: 1450px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .hero,
+    .panel {
+      background: linear-gradient(180deg, rgba(22, 31, 46, 0.94), rgba(13, 20, 31, 0.92));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .hero {
+      padding: 28px;
+      margin-bottom: 18px;
+      display: grid;
+      gap: 18px;
+    }
+    .hero-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
+      gap: 18px;
+      align-items: start;
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+    .hero-logo {
+      margin: 0;
+      color: var(--accent);
+      font-size: clamp(24px, 3vw, 40px);
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      line-height: 1;
+      text-shadow: 0 0 18px rgba(124, 224, 255, 0.18);
+    }
+    .muted {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .hero-actions {
+      display: flex;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+      width: 100%;
+    }
+    .hero-actions button {
+      width: auto;
+      min-width: 128px;
+      justify-content: center;
+      padding: 9px 14px;
+      min-height: 42px;
+    }
+    .hero-actions button.is-active,
+    button.is-active,
+    .button-like.is-active,
+    button.secondary.is-active,
+    button.ghost.is-active,
+    .toggle-chip.is-active {
+      border-color: rgba(124, 224, 255, 0.58);
+      background: linear-gradient(135deg, rgba(124, 224, 255, 0.24), rgba(150, 255, 218, 0.24));
+      box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.16);
+    }
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+    button,
+    .button-like {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, color 160ms ease;
+    }
+    button:hover,
+    .button-like:hover {
+      transform: translateY(-1px);
+      border-color: rgba(124, 224, 255, 0.45);
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.12);
+    }
+    button.secondary {
+      background: transparent;
+      border-color: var(--line);
+    }
+    button.ghost {
+      background: transparent;
+      border-color: var(--line);
+    }
+    button.secondary:hover,
+    button.ghost:hover,
+    .toggle-chip:hover,
+    .status-toggle:hover {
+      transform: translateY(-1px);
+      border-color: rgba(124, 224, 255, 0.45);
+      background: rgba(255, 255, 255, 0.03);
+      box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.12);
+    }
+    button:disabled,
+    .toggle-chip:disabled,
+    .status-toggle:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .token-card {
+      padding: 18px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(18, 27, 40, 0.9), rgba(13, 20, 30, 0.8));
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .token-card input,
+    .editor input,
+    .editor select,
+    .editor textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(7, 14, 22, 0.75);
+      color: var(--text);
+      padding: 12px 14px;
+      min-height: 46px;
+      line-height: 1.3;
+      box-shadow: inset 0 0 0 1px transparent;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+    .select-shell {
+      position: relative;
+    }
+    .select-shell .custom-select-native {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .select-trigger {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(7, 14, 22, 0.75);
+      color: var(--text);
+      padding: 12px 42px 12px 14px;
+      line-height: 1.3;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px transparent;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      position: relative;
+    }
+    .select-trigger::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      transform: translateY(-50%);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3.25 5.25L7 9L10.75 5.25' stroke='%239fb3c8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 14px 14px;
+      transition: transform 160ms ease;
+      pointer-events: none;
+    }
+    .select-shell.is-open .select-trigger::after {
+      transform: translateY(-50%) rotate(180deg);
+    }
+    .select-trigger:focus-visible {
+      outline: none;
+      border-color: rgba(124, 224, 255, 0.45);
+      background: rgba(10, 18, 28, 0.88);
+      box-shadow: 0 0 0 3px rgba(124, 224, 255, 0.08), inset 0 0 0 1px rgba(124, 224, 255, 0.12);
+    }
+    .select-shell.is-open {
+      z-index: 30;
+    }
+    .select-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 8px);
+      padding: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(20, 29, 43, 0.98), rgba(11, 18, 28, 0.98));
+      box-shadow: var(--shadow);
+      display: none;
+      max-height: 260px;
+      overflow: auto;
+    }
+    .select-shell.is-open .select-menu {
+      display: grid;
+      gap: 4px;
+    }
+    .select-search {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(7, 14, 22, 0.92);
+      color: var(--text);
+      padding: 10px 12px;
+      min-height: 40px;
+      line-height: 1.3;
+      box-shadow: inset 0 0 0 1px transparent;
+    }
+    .select-search:focus {
+      outline: none;
+      border-color: rgba(124, 224, 255, 0.45);
+      box-shadow: 0 0 0 3px rgba(124, 224, 255, 0.08), inset 0 0 0 1px rgba(124, 224, 255, 0.12);
+    }
+    .select-option {
+      width: 100%;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: var(--text);
+      padding: 10px 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: background 160ms ease, color 160ms ease;
+    }
+    .select-option:hover,
+    .select-option:focus-visible {
+      outline: none;
+      background: rgba(124, 224, 255, 0.12);
+    }
+    .select-option.is-selected {
+      background: rgba(124, 224, 255, 0.16);
+      color: var(--accent-2);
+    }
+    .select-option:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .select-empty {
+      padding: 10px 12px;
+      color: var(--soft);
+      font-size: 13px;
+      text-align: center;
+    }
+    .token-card input:focus,
+    .editor input:focus,
+    .editor select:focus,
+    .editor textarea:focus {
+      outline: none;
+      border-color: rgba(124, 224, 255, 0.45);
+      background: rgba(10, 18, 28, 0.88);
+      box-shadow: 0 0 0 3px rgba(124, 224, 255, 0.08), inset 0 0 0 1px rgba(124, 224, 255, 0.12);
+    }
+    .editor select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+    }
+    .editor textarea {
+      min-height: 94px;
+    }
+    .token-card small,
+    .hint {
+      color: var(--soft);
+      line-height: 1.4;
+    }
+    .hero-message {
+      margin: 0;
+      min-height: 0;
+      max-width: 520px;
+      justify-self: end;
+      align-self: center;
+      color: var(--muted);
+      line-height: 1.45;
+      text-align: right;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+      user-select: text;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 5s linear, visibility 0s linear 5s;
+    }
+    .hero-message.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0s linear, visibility 0s linear;
+    }
+    .hero-message.ok {
+      color: var(--ok);
+    }
+    .hero-message.error {
+      color: var(--bad);
+    }
+    .hero-message.service-ok {
+      color: var(--ok);
+    }
+    .hero-message.service-error {
+      color: var(--bad);
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .metric {
+      min-width: 0;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .metric .k {
+      color: var(--soft);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+    .metric .v {
+      font-size: clamp(13px, 1.2vw, 20px);
+      font-weight: 700;
+      line-height: 1.15;
+      overflow-wrap: anywhere;
+    }
+    .metric .v.tight {
+      font-size: clamp(12px, 1.05vw, 17px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(430px, 1fr);
+      gap: 18px;
+    }
+    .panel {
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .panel h2,
+    .panel h3 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .jobs-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .job-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px;
+      background:
+        linear-gradient(135deg, rgba(124, 224, 255, 0.06), transparent 34%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+    .job-card.clickable {
+      cursor: pointer;
+    }
+    .job-card.clickable:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+    }
+    .job-card.disabled {
+      opacity: 0.62;
+    }
+    .job-card.selected {
+      border-color: rgba(124, 224, 255, 0.62);
+      background:
+        linear-gradient(135deg, rgba(124, 224, 255, 0.22), transparent 38%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+      box-shadow:
+        0 0 0 1px rgba(124, 224, 255, 0.18),
+        0 18px 38px rgba(5, 12, 20, 0.22),
+        0 0 24px rgba(124, 224, 255, 0.14);
+    }
+    .job-card.selected .job-title {
+      color: #ffffff;
+    }
+    .cloud-card.selected .job-title {
+      color: #ffffff;
+    }
+    .job-card.selected .pill {
+      border-color: rgba(124, 224, 255, 0.34);
+      color: #dff8ff;
+      background: rgba(124, 224, 255, 0.08);
+    }
+    .cloud-card.selected .pill {
+      border-color: rgba(124, 224, 255, 0.34);
+      color: #dff8ff;
+      background: rgba(124, 224, 255, 0.08);
+    }
+    .job-top,
+    .row,
+    .browse-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .job-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 12px 0;
+    }
+    .pill {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .pill-retention {
+      border-color: rgba(151, 255, 63, 0.34);
+      color: #d7ffb4;
+      background: linear-gradient(135deg, rgba(151, 255, 63, 0.12), rgba(151, 255, 63, 0.04));
+      box-shadow: inset 0 0 0 1px rgba(151, 255, 63, 0.08);
+    }
+    .job-card.selected .pill-retention {
+      border-color: rgba(151, 255, 63, 0.46);
+      color: #eeffd8;
+      background: linear-gradient(135deg, rgba(151, 255, 63, 0.16), rgba(151, 255, 63, 0.07));
+    }
+    .status-toggle {
+      min-width: 92px;
+      justify-content: center;
+      background: transparent;
+      box-shadow: none;
+    }
+    .status-toggle.enabled {
+      color: #97ff3f;
+      border-color: rgba(151, 255, 63, 0.4);
+    }
+    .status-toggle.disabled {
+      color: #ff5a68;
+      border-color: rgba(255, 90, 104, 0.34);
+    }
+    .job-card.selected .status-toggle {
+      background: transparent;
+      box-shadow: none;
+    }
+    .job-card.selected .status-toggle.enabled {
+      color: #97ff3f;
+      border-color: rgba(151, 255, 63, 0.4);
+    }
+    .job-card.selected .status-toggle.disabled {
+      color: #ff5a68;
+      border-color: rgba(255, 90, 104, 0.34);
+    }
+    .clouds-list {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .path-block {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(6, 11, 18, 0.5);
+      border: 1px solid rgba(141, 181, 212, 0.12);
+      margin-bottom: 10px;
+    }
+    .path-label {
+      color: var(--soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 6px;
+    }
+    .path-value,
+    code {
+      font-family: var(--mono);
+      word-break: break-all;
+    }
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .editor-grid,
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .editor label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .toggle-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 42px;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text);
+      text-align: center;
+      line-height: 1.3;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, color 160ms ease;
+    }
+    .toggle-chip[aria-pressed="true"] {
+      color: var(--text);
+      border-color: rgba(124, 224, 255, 0.58);
+      background: linear-gradient(135deg, rgba(124, 224, 255, 0.24), rgba(150, 255, 218, 0.24));
+      box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.16);
+    }
+    .field.full,
+    .schedule-grid .full {
+      grid-column: 1 / -1;
+    }
+    textarea {
+      min-height: 94px;
+      resize: vertical;
+    }
+    .weekday-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .weekday-grid label {
+      margin: 0;
+      padding: 10px 0;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      cursor: pointer;
+    }
+    .weekday-grid input {
+      display: none;
+    }
+    .weekday-grid input:checked + span {
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+    .editor-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .subpanel {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(16, 24, 36, 0.84), rgba(10, 17, 26, 0.78));
+    }
+    .subpanel + .subpanel {
+      margin-top: 14px;
+    }
+    .subpanel .eyebrow {
+      margin-bottom: 10px;
+    }
+    .editor-stack {
+      display: grid;
+      gap: 14px;
+    }
+    .field-meta {
+      margin-top: 6px;
+      color: var(--soft);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--soft); font-weight: 600; }
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(4, 8, 14, 0.72);
+      backdrop-filter: blur(10px);
+    }
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+    .browse {
+      width: min(820px, 100%);
+      max-height: min(78vh, 760px);
+      overflow: hidden;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(10, 18, 28, 0.98), rgba(7, 13, 22, 0.96)),
+        rgba(6, 12, 18, 0.92);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+      gap: 12px;
+    }
+    .browse-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .browse-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .browse-frame {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(2, 7, 12, 0.48);
+      overflow: hidden;
+    }
+    .browse-columns,
+    .browse-status {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px 132px;
+      gap: 12px;
+      align-items: center;
+    }
+    .browse-columns {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      color: var(--soft);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .browse-list {
+      max-height: min(56vh, 520px);
+      overflow: auto;
+      display: grid;
+      gap: 0;
+    }
+    .browse-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 120px 132px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(141, 181, 212, 0.08);
+      background: transparent;
+      cursor: pointer;
+      user-select: none;
+    }
+    .browse-item:last-child {
+      border-bottom: none;
+    }
+    .browse-item:hover {
+      background: rgba(255,255,255,0.04);
+    }
+    .browse-item.active {
+      background: rgba(124, 224, 255, 0.14);
+      box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.26);
+    }
+    .browse-name {
+      min-width: 0;
+    }
+    .browse-name strong,
+    .browse-name .muted {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .browse-kind,
+    .browse-hint {
+      color: var(--soft);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .browse-status {
+      padding: 10px 14px;
+      border-top: 1px solid var(--line);
+      color: var(--soft);
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .empty {
+      padding: 18px;
+      text-align: center;
+      border-radius: 18px;
+      border: 1px dashed var(--line);
+      color: var(--soft);
+    }
+    @media (max-width: 1100px) {
+      .hero-top {
+        grid-template-columns: 1fr;
+      }
+      .hero-message {
+        justify-self: start;
+        max-width: none;
+        text-align: left;
+      }
+      .hero-actions {
+        justify-content: stretch;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 720px) {
+      .shell { padding: 14px; }
+      .hero, .panel { padding: 16px; border-radius: 20px; }
+      .hero-actions {
+        justify-content: stretch;
+      }
+      .hero-top {
+        grid-template-columns: 1fr;
+      }
+      .hero-message {
+        text-align: left;
+      }
+      .editor-grid,
+      .schedule-grid,
+      .weekday-grid {
+        grid-template-columns: 1fr;
+      }
+      .browse {
+        width: 100%;
+        max-height: 86vh;
+        padding: 16px;
+        border-radius: 22px 22px 0 0;
+      }
+      .browse-columns,
+      .browse-item,
+      .browse-status {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .browse-kind,
+      .browse-hint {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="hero-logo">Rclone Commander</div>
+        <p class="hero-message" id="messagePanel" role="status" aria-live="polite"></p>
+      </div>
+      <div class="hero-actions">
+        <button id="cloudsToggle" onclick="toggleClouds()">Облака</button>
+        <button id="queuesToggle" onclick="toggleQueues()">Очереди</button>
+        <button id="gotifyToggle" onclick="toggleGotify()">Gotify</button>
+      </div>
+    </section>
+
+    <section class="status-grid" id="statusGrid"></section>
+
+    <div class="main-grid">
+      <div id="leftColumn">
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Список задач</h2>
+            </div>
+            <div class="row">
+              <button class="ghost" id="newJobToggle" onclick="newJob()">Новая задача</button>
+              <button class="secondary" onclick="saveJobs()">Сохранить задачи</button>
+            </div>
+          </div>
+          <div class="jobs-grid" id="jobsGrid"></div>
+        </section>
+        <div id="historySlotLeft"></div>
+      </div>
+
+      <div id="rightColumn">
+        <section class="panel editor" id="cloudsPanel" hidden>
+          <div class="panel-header">
+            <div>
+              <h3>Облака</h3>
+            </div>
+            <div class="row">
+              <button class="secondary" type="button" onclick="importCloudsFromRclone()">Импорт из rclone</button>
+              <button class="ghost" type="button" onclick="newCloud()">Новое облако</button>
+              <button type="button" onclick="saveClouds()">Сохранить</button>
+            </div>
+          </div>
+          <div class="clouds-list" id="cloudsList"></div>
+          <div class="panel editor" id="cloudEditor" hidden style="margin-top:16px; margin-bottom:0; padding:16px;">
+            <div class="panel-header" style="margin-bottom:12px;">
+              <div>
+                <h3 id="cloudEditorTitle">Новое облако</h3>
+              </div>
+              <div class="row">
+                <button class="secondary" type="button" onclick="testCloudConnection()">Проверить</button>
+                <button type="button" onclick="upsertCurrentCloud()">Записать</button>
+              </div>
+            </div>
+            <div class="editor-stack">
+              <div class="subpanel">
+                <div class="eyebrow">Идентичность</div>
+                <div class="editor-grid">
+                  <div class="field">
+                    <label for="cloudTitle">Название</label>
+                    <input id="cloudTitle" placeholder="Mail Cloud" />
+                  </div>
+                  <div class="field">
+                    <label for="cloudKey">Ключ облака</label>
+                    <input id="cloudKey" placeholder="mail_cloud" />
+                    <div class="field-meta">Внутренний ключ для задач и привязки облака.</div>
+                  </div>
+                  <div class="field">
+                    <label for="cloudProvider">Провайдер</label>
+                    <select id="cloudProvider"></select>
+                  </div>
+                  <div class="field">
+                    <label for="cloudRemoteName">Имя remote</label>
+                    <div class="row">
+                      <input id="cloudRemoteName" placeholder="mail" />
+                      <button type="button" class="secondary" onclick="importCurrentRemote()">Подтянуть</button>
+                    </div>
+                    <div class="field-meta">Имя секции в `rclone.conf`, которое будет использоваться в путях.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="subpanel">
+                <div class="eyebrow">Подключение</div>
+                <div class="editor-grid">
+                  <div class="field">
+                    <label for="cloudUsername">Имя пользователя</label>
+                    <input id="cloudUsername" placeholder="user@example.com" />
+                  </div>
+                  <div class="field">
+                    <label for="cloudToken">Token / пароль</label>
+                    <input id="cloudToken" type="password" placeholder="access token" />
+                    <div class="field-meta" id="cloudTokenHint">Для простых backend сюда можно класть токен или пароль. Для `drive` нужен полный OAuth JSON.</div>
+                  </div>
+                  <div class="field full">
+                    <label for="cloudEndpoint">Endpoint / URL</label>
+                    <input id="cloudEndpoint" placeholder="https://cloud.example.com" />
+                  </div>
+                  <div class="field full">
+                    <label for="cloudRootPath">Корневой путь</label>
+                    <input id="cloudRootPath" placeholder="/BACKUPS" />
+                    <div class="field-meta">Базовая папка внутри remote, которая будет подставляться в задачи.</div>
+                  </div>
+                  <div class="field full">
+                    <label for="cloudExtraConfig">Доп. параметры rclone.conf</label>
+                    <textarea id="cloudExtraConfig" placeholder="client_id = ...&#10;client_secret = ...&#10;scope = drive&#10;team_drive = ..."></textarea>
+                    <div class="field-meta">По одной строке `key = value`. Сюда попадают provider-specific поля, которых нет в основной форме.</div>
+                  </div>
+                  <div class="field full">
+                    <button type="button" class="toggle-chip" id="cloudEnabled" aria-pressed="true">Облако активно</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="subpanel">
+                <div class="eyebrow">Заметки</div>
+                <div class="field full">
+                  <label for="cloudNotes">Описание</label>
+                  <textarea id="cloudNotes" placeholder="Описание, ограничения, способ авторизации"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="editor-actions">
+              <button class="ghost" type="button" id="deleteCloudButton" onclick="deleteCurrentCloud()" disabled>Удалить</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" id="queuesPanel" hidden>
+          <div class="token-card" style="padding:0; border:none; background:none;">
+            <div>
+              <div class="eyebrow">Тестовый запуск</div>
+              <div class="editor-actions" style="margin-top:10px;">
+                <button type="button" onclick="enqueueProfile('standard')">Запустить standard</button>
+                <button type="button" onclick="enqueueProfile('heavy')">Запустить heavy</button>
+                <button type="button" onclick="enqueueProfile('all')">Запустить всё</button>
+              </div>
+            </div>
+            <div>
+              <div class="eyebrow">Настройка очередей</div>
+              <button type="button" class="toggle-chip" id="queuesParallelProfiles" aria-pressed="false">Разрешить parallel standard + heavy</button>
+            </div>
+            <div>
+              <button type="button" class="toggle-chip" id="queuesSchedulerQueueing" aria-pressed="false">Scheduler может накапливать задачи в очереди</button>
+            </div>
+            <div>
+              <button type="button" class="toggle-chip" id="queuesEventQueueing" aria-pressed="false">События watcher могут вставать в очередь</button>
+            </div>
+            <small>Если parallel выключен, standard и heavy не запускаются одновременно. Если queueing выключен, scheduler и watcher пропускают новые постановки при занятой системе.</small>
+          </div>
+          <div class="editor-actions">
+            <button onclick="saveQueueSettings()">Сохранить</button>
+          </div>
+        </section>
+
+        <div id="historySlotRight"></div>
+        <section class="panel" id="runsPanel">
+          <div class="panel-header">
+            <div>
+              <h3>История запусков</h3>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Статус</th>
+                <th>Профиль</th>
+                <th>Триггер</th>
+                <th>Запрошен</th>
+                <th>Сводка</th>
+              </tr>
+            </thead>
+            <tbody id="runsBody"></tbody>
+          </table>
+        </section>
+        <section class="panel editor" id="editorPanel" hidden>
+          <div class="panel-header">
+            <div>
+              <h2 id="editorTitle">Новая задача</h2>
+            </div>
+            <div class="row">
+              <button onclick="upsertCurrentJob()">Записать</button>
+            </div>
+          </div>
+
+	          <div class="editor-grid">
+            <div class="field">
+              <label for="jobKind">Тип задачи</label>
+              <select id="jobKind" onchange="updateJobKindVisibility()">
+                <option value="copy">Копирование</option>
+                <option value="sync">Синхронизация</option>
+                <option value="command">Команда</option>
+              </select>
+            </div>
+	            <div class="field">
+	              <label for="jobKey">Ключ задачи</label>
+	              <input id="jobKey" placeholder="photo_library_sync" />
+            </div>
+            <div class="field">
+              <label for="jobTitle">Заголовок карточки</label>
+              <input id="jobTitle" placeholder="Фотоархив" />
+            </div>
+	            <div class="field full" data-job-kind="backup">
+	              <label for="jobSource">Исходный каталог</label>
+              <div class="row">
+                <input id="jobSource" placeholder="/media/photo/library/" />
+                <button type="button" class="secondary" onclick="openBrowser('source')">Выбрать</button>
+              </div>
+            </div>
+	            <div class="field full" data-job-kind="backup">
+	              <label for="jobCloud">Облако</label>
+              <select id="jobCloud"></select>
+            </div>
+	            <div class="field full" data-job-kind="backup" data-cloud-mode="selected">
+	              <label for="jobDestinationSubpath">Путь внутри облака</label>
+              <input id="jobDestinationSubpath" placeholder="PHOTO/library/" />
+            </div>
+	            <div class="field full" data-job-kind="backup" data-cloud-mode="selected">
+	              <label for="jobDestinationPreview">Итоговый удалённый путь</label>
+              <input id="jobDestinationPreview" readonly />
+            </div>
+	            <div class="field full" data-job-kind="backup" data-cloud-mode="manual">
+	              <label for="jobDestination">Удалённый путь</label>
+              <input id="jobDestination" placeholder="mail:/PHOTO/library/" />
+            </div>
+	            <div class="field">
+	              <label for="jobProfile">Очередь</label>
+              <select id="jobProfile">
+                <option value="standard">standard</option>
+                <option value="heavy">heavy</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="jobTimeout">Timeout, сек</label>
+              <input id="jobTimeout" type="number" min="1" value="1800" />
+            </div>
+            <div class="field">
+              <label for="jobOrder">Порядок запуска</label>
+              <input id="jobOrder" type="number" min="1" value="10" />
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;">
+            <div class="panel-header" style="margin-bottom:12px;">
+              <div>
+                <h3>Расписание</h3>
+              </div>
+            </div>
+            <div class="schedule-grid">
+              <div class="field">
+                <label for="scheduleMode">Тип</label>
+                <select id="scheduleMode" onchange="updateScheduleVisibility()">
+                  <option value="off">off</option>
+                  <option value="interval">interval</option>
+                  <option value="daily">daily</option>
+                  <option value="weekly">weekly</option>
+                </select>
+              </div>
+              <div class="field" data-schedule="interval">
+                <label for="scheduleInterval">Интервал, минут</label>
+                <input id="scheduleInterval" type="number" min="1" value="60" />
+              </div>
+              <div class="field" data-schedule="time">
+                <label for="scheduleHour">Час</label>
+                <input id="scheduleHour" type="number" min="0" max="23" value="3" />
+              </div>
+              <div class="field" data-schedule="time">
+                <label for="scheduleMinute">Минута</label>
+                <input id="scheduleMinute" type="number" min="0" max="59" value="0" />
+              </div>
+              <div class="field full" data-schedule="weekly">
+                <label>Дни недели</label>
+                <div class="weekday-grid" id="weekdayGrid"></div>
+              </div>
+            </div>
+          </div>
+
+	          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;" data-job-kind="backup">
+	            <div class="panel-header" style="margin-bottom:12px;">
+	              <div>
+	                <h3>Дополнительные rclone-опции</h3>
+              </div>
+            </div>
+            <div class="editor-grid">
+              <div class="field">
+                <label for="maxAge">max-age</label>
+                <input id="maxAge" placeholder="7d" />
+              </div>
+              <div class="field">
+                <label for="minAge">min-age</label>
+                <input id="minAge" placeholder="15m" />
+              </div>
+              <div class="field full">
+                <label for="excludeList">exclude patterns</label>
+                <textarea id="excludeList" placeholder="*.tmp&#10;*.dat"></textarea>
+              </div>
+              <div class="field full">
+                <label for="extraArgs">extra args</label>
+                <textarea id="extraArgs" placeholder="--bwlimit 10M&#10;--fast-list"></textarea>
+              </div>
+              <div class="field full">
+                <label for="commandPreview">Предпросмотр команды</label>
+                <textarea id="commandPreview" readonly></textarea>
+              </div>
+	            </div>
+	          </div>
+
+          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;" data-job-kind="backup" data-retention-block="true">
+            <div class="panel-header" style="margin-bottom:12px;">
+              <div>
+                <h3>Очистка в облаке</h3>
+              </div>
+            </div>
+            <div class="editor-grid">
+              <div class="field">
+                <button type="button" class="toggle-chip" id="retentionEnabled" aria-pressed="false">Включить очистку после успешного backup</button>
+              </div>
+              <div class="field">
+                <label for="retentionMinAge">Удалять в облаке старше</label>
+                <input id="retentionMinAge" placeholder="30d" />
+              </div>
+              <div class="field full">
+                <label for="retentionExcludeList">exclude patterns для очистки</label>
+                <textarea id="retentionExcludeList" placeholder="keep/**&#10;*.keep"></textarea>
+              </div>
+              <div class="field full">
+                <label for="retentionExtraArgs">extra args для очистки</label>
+                <textarea id="retentionExtraArgs" placeholder="--rmdirs"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;" data-job-kind="command">
+            <div class="panel-header" style="margin-bottom:12px;">
+              <div>
+                <h3>Команда</h3>
+              </div>
+            </div>
+            <div class="editor-grid">
+              <div class="field full">
+                <label for="commandList">Команда по аргументам, каждая строка отдельным элементом</label>
+                <textarea id="commandList" placeholder="rclone&#10;delete&#10;mail:/MYSPACE/BACKUPS/Proxmox&#10;--min-age&#10;7d"></textarea>
+              </div>
+            </div>
+          </div>
+
+	          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;">
+	            <div class="panel-header" style="margin-bottom:12px;">
+	              <div>
+	                <h3>Уведомления Gotify</h3>
+	              </div>
+	            </div>
+		            <div class="editor-grid">
+		              <div class="field">
+		                <button type="button" class="toggle-chip" id="jobNotifySuccess" aria-pressed="false">Уведомлять об успехе</button>
+		              </div>
+		              <div class="field">
+		                <button type="button" class="toggle-chip" id="jobNotifyFailure" aria-pressed="true">Уведомлять об ошибке</button>
+		              </div>
+	              <div class="field">
+	                <label for="jobNotifyPriority">Приоритет</label>
+	                <input id="jobNotifyPriority" type="number" min="1" max="10" placeholder="по умолчанию" />
+	              </div>
+	              <div class="field full">
+	                <label for="jobNotifyTitle">Свой заголовок уведомления</label>
+	                <input id="jobNotifyTitle" placeholder="например: Photo backup" />
+	              </div>
+	            </div>
+	          </div>
+	
+          <div class="editor-actions">
+            <button class="secondary" id="testRunButton" onclick="runCurrentJob()" disabled>Тестовый запуск</button>
+            <button class="ghost" id="deleteButton" onclick="deleteCurrentJob()" disabled>Удалить</button>
+          </div>
+
+        </section>
+
+        <section class="panel" id="gotifyPanel" hidden>
+          <div class="token-card" style="padding:0; border:none; background:none;">
+            <div>
+              <div class="eyebrow">Gotify</div>
+              <button type="button" class="toggle-chip" id="gotifyEnabled" aria-pressed="false">Включить Gotify</button>
+            </div>
+            <div>
+              <label for="gotifyUrl">URL сервера</label>
+              <input id="gotifyUrl" placeholder="http://gotify.local" />
+            </div>
+            <div>
+              <label for="gotifyToken">App token</label>
+              <input id="gotifyToken" type="password" placeholder="gotify app token" />
+            </div>
+            <div>
+              <label for="gotifyPriority">Приоритет по умолчанию</label>
+              <input id="gotifyPriority" type="number" min="1" max="10" value="5" />
+            </div>
+            <small>Общие параметры Gotify для всех задач. Локальные настройки уведомлений задаются внутри карточки задания.</small>
+          </div>
+          <div class="editor-actions">
+            <button onclick="saveGotifySettings()">Сохранить Gotify</button>
+            <button class="secondary" onclick="testGotifySettings()">Проверить</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="modal-backdrop" id="browseModal" hidden onclick="handleBrowseBackdrop(event)">
+    <div class="browse" id="browsePanel" role="dialog" aria-modal="true" aria-labelledby="browseTitle" tabindex="-1">
+      <div class="browse-head">
+        <strong id="browseTitle">Выбор каталога</strong>
+        <button class="ghost" type="button" onclick="closeBrowser()">Закрыть</button>
+      </div>
+      <div class="browse-toolbar">
+        <div class="browse-actions">
+          <button class="ghost" type="button" id="browseUpButton" onclick="browseUp()">Назад</button>
+          <button class="secondary" type="button" id="browseChooseButton" onclick="chooseCurrentDirectory()">Выбрать текущую папку</button>
+        </div>
+        <div class="muted">Стрелки: перемещение, Enter: открыть, Space: выбрать.</div>
+      </div>
+      <div class="muted" id="browsePath">Корни файловой системы</div>
+      <div class="browse-frame">
+        <div class="browse-columns">
+          <div>Имя</div>
+          <div>Тип</div>
+          <div>Действие</div>
+        </div>
+        <div class="browse-list" id="browseList"></div>
+        <div class="browse-status">
+          <div id="browseSelection">Нет папок</div>
+          <div>Текущий выбор</div>
+          <div id="browseHint">Backspace или кнопка сверху вернут на уровень выше.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      jobs: [],
+      clouds: [],
+      providers: [],
+      gotify: { enabled: false, url: "", token: "", default_priority: 5 },
+      queues: { allow_parallel_profiles: false, allow_scheduler_queueing: false, allow_event_queueing: false },
+      showClouds: false,
+      showGotify: false,
+      showQueues: false,
+      creatingNewCloud: false,
+      creatingNewJob: false,
+      editingKey: null,
+      editingCloudKey: null,
+      cloudKeyEditedManually: false,
+      keyEditedManually: false,
+      toastTimer: null,
+      toastHideTimer: null,
+      serviceMessage: { text: "", tone: "ok" },
+      browseTarget: "source",
+      browseEntries: [],
+      browseSelectedIndex: 0,
+      browseCurrentPath: "",
+      browseParent: null,
+    };
+
+    const weekdayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    const weekdayGrid = document.getElementById("weekdayGrid");
+    weekdayGrid.innerHTML = weekdayLabels.map((label, index) => `
+      <label>
+        <input type="checkbox" value="${index}" />
+        <span>${label}</span>
+      </label>
+    `).join("");
+
+    function setToast(message, tone = "muted") {
+      const panel = document.getElementById("messagePanel");
+      if (state.toastTimer) {
+        clearTimeout(state.toastTimer);
+        state.toastTimer = null;
+      }
+      if (state.toastHideTimer) {
+        clearTimeout(state.toastHideTimer);
+        state.toastHideTimer = null;
+      }
+      panel.hidden = false;
+      panel.className = `hero-message is-visible ${tone === "error" ? "error" : (tone === "ok" ? "ok" : "")}`.trim();
+      panel.textContent = message;
+      void panel.offsetWidth;
+      state.toastTimer = window.setTimeout(() => {
+        panel.classList.remove("is-visible");
+      }, 40);
+      state.toastHideTimer = window.setTimeout(() => {
+        closeMessageModal();
+      }, 5040);
+    }
+
+    async function copyMessagePanelText() {
+      const panel = document.getElementById("messagePanel");
+      const text = (panel?.textContent || "").trim();
+      if (!text) return;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const helper = document.createElement("textarea");
+          helper.value = text;
+          helper.setAttribute("readonly", "");
+          helper.style.position = "absolute";
+          helper.style.left = "-9999px";
+          document.body.appendChild(helper);
+          helper.select();
+          document.execCommand("copy");
+          document.body.removeChild(helper);
+        }
+        setToast(`Скопировано: ${text}`, "ok");
+      } catch (error) {
+        setToast("Не удалось скопировать сообщение", "error");
+      }
+    }
+
+    function renderServiceMessage() {
+      const panel = document.getElementById("messagePanel");
+      if (!state.serviceMessage.text) {
+        panel.className = "hero-message";
+        panel.textContent = "";
+        return;
+      }
+      panel.className = `hero-message is-visible ${state.serviceMessage.tone === "error" ? "service-error" : "service-ok"}`.trim();
+      panel.textContent = state.serviceMessage.text;
+    }
+
+    function updateServiceMessage(snapshot) {
+      const standardAlive = Boolean(snapshot?.standard_worker_alive);
+      const heavyAlive = Boolean(snapshot?.heavy_worker_alive);
+      const openRuns = Number(snapshot?.open_runs_total || 0);
+      const standardQueue = Number(snapshot?.standard_queue_size || 0);
+      const heavyQueue = Number(snapshot?.heavy_queue_size || 0);
+      if (!standardAlive) {
+        state.serviceMessage = {
+          text: "Служба недоступна",
+          tone: "error",
+        };
+      } else if (openRuns > 0) {
+        state.serviceMessage = {
+          text: `Идёт выполнение: ${openRuns} ${openRuns === 1 ? "задача" : "задач"}`,
+          tone: "ok",
+        };
+      } else if (standardQueue > 0 || heavyQueue > 0) {
+        const queued = standardQueue + heavyQueue;
+        state.serviceMessage = {
+          text: `Очередь занята: ${queued} ${queued === 1 ? "задача" : "задач"} ожидает`,
+          tone: "ok",
+        };
+      } else if (heavyAlive) {
+        state.serviceMessage = {
+          text: "Служба: running",
+          tone: "ok",
+        };
+      } else {
+        state.serviceMessage = {
+          text: "Служба: running",
+          tone: "ok",
+        };
+      }
+      if (!state.toastHideTimer) {
+        renderServiceMessage();
+      }
+    }
+
+    function closeMessageModal() {
+      if (state.toastTimer) {
+        clearTimeout(state.toastTimer);
+        state.toastTimer = null;
+      }
+      if (state.toastHideTimer) {
+        clearTimeout(state.toastHideTimer);
+        state.toastHideTimer = null;
+      }
+      renderServiceMessage();
+    }
+
+    function statusClass(status) {
+      if (status === "succeeded") return "ok";
+      if (status === "failed") return "bad";
+      if (status === "running" || status === "queued") return "warn";
+      return "";
+    }
+
+    function formatMetricTimestamp(value) {
+      const raw = String(value || "").trim();
+      if (!raw || raw === "none") return "none";
+      const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/);
+      if (!match) return raw;
+      const [, , month, day, hour, minute] = match;
+      const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthLabel = monthLabels[Number(month) - 1] || month;
+      return hour && minute
+        ? `${monthLabel} ${day} ${hour}:${minute}`
+        : `${monthLabel} ${day}`;
+    }
+
+    function formatRunTimestamp(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const parsed = new Date(raw);
+      if (Number.isNaN(parsed.getTime())) return raw;
+      const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthLabel = monthLabels[parsed.getMonth()];
+      const day = String(parsed.getDate()).padStart(2, "0");
+      const hours = String(parsed.getHours()).padStart(2, "0");
+      const minutes = String(parsed.getMinutes()).padStart(2, "0");
+      const seconds = String(parsed.getSeconds()).padStart(2, "0");
+      return `${monthLabel} ${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    function metrics(snapshot) {
+      return [
+        ["standard queue", snapshot.standard_queue_size],
+        ["heavy queue", snapshot.heavy_queue_size],
+        ["open runs", snapshot.open_runs_total],
+        ["backup jobs", (snapshot.backup_jobs || []).length],
+        ["worker standard", snapshot.standard_worker_alive ? "alive" : "down"],
+        ["worker heavy", snapshot.heavy_worker_alive ? "alive" : "down"],
+        ["scheduler", snapshot.scheduler_alive ? "alive" : "down"],
+        ["last standard", formatMetricTimestamp(snapshot.last_standard_tick)],
+        ["last heavy", formatMetricTimestamp(snapshot.last_heavy_day)],
+      ];
+    }
+
+    function updateRunsLayout() {
+      const leftSlot = document.getElementById("historySlotLeft");
+      const rightSlot = document.getElementById("historySlotRight");
+      const runsPanel = document.getElementById("runsPanel");
+      const editorHidden = document.getElementById("editorPanel").hidden;
+      const shouldPlaceRight = state.showQueues || (editorHidden && !state.showGotify && !state.showClouds);
+      const target = shouldPlaceRight ? rightSlot : leftSlot;
+      if (runsPanel.parentElement !== target) {
+        target.appendChild(runsPanel);
+      }
+    }
+
+    function renderCloudList() {
+      const container = document.getElementById("cloudsList");
+      if (!container) return;
+      if (!state.clouds.length) {
+        container.innerHTML = `<div class="empty">Облака ещё не добавлены.</div>`;
+        return;
+      }
+      container.innerHTML = state.clouds.map((cloud) => `
+        <article class="job-card cloud-card clickable ${cloud.enabled ? "" : "disabled"} ${state.editingCloudKey === cloud.key ? "selected" : ""}" onclick="editCloud('${cloud.key}')">
+          <div class="job-top">
+            <div>
+              <div class="job-title">${escapeHtml(cloud.display_title || cloud.title || cloud.key)}</div>
+            </div>
+            <div class="pill ${cloud.enabled ? "ok" : "bad"}">${cloud.enabled ? "enabled" : "disabled"}</div>
+          </div>
+          <div class="pill-row">
+            <div class="pill">${escapeHtml(cloud.provider || "generic")}</div>
+            ${cloud.remote_name ? `<div class="pill">${escapeHtml(cloud.remote_name)}</div>` : ""}
+            ${cloud.username ? `<div class="pill">${escapeHtml(cloud.username)}</div>` : ""}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderJobCloudOptions(selectedKey = "") {
+      const select = document.getElementById("jobCloud");
+      if (!select) return;
+      const options = ['<option value="">Вручную</option>']
+        .concat(
+          state.clouds.map((cloud) => (
+            `<option value="${escapeHtml(cloud.key)}">${escapeHtml(cloud.display_title || cloud.title || cloud.key)}</option>`
+          ))
+        );
+      select.innerHTML = options.join("");
+      select.value = selectedKey || "";
+      refreshCustomSelect("jobCloud");
+    }
+
+    function renderCloudProviderOptions(selectedValue = "") {
+      const select = document.getElementById("cloudProvider");
+      if (!select) return;
+      const providers = Array.isArray(state.providers) ? state.providers : [];
+      const knownValues = new Set(providers.map((provider) => provider.name));
+      const currentValue = (selectedValue || "").trim() || "generic";
+      const options = [];
+      if (!knownValues.has("generic")) {
+        options.push('<option value="generic">generic</option>');
+      }
+      if (currentValue && !knownValues.has(currentValue) && currentValue !== "generic") {
+        options.push(`<option value="${escapeHtml(currentValue)}">${escapeHtml(currentValue)} (custom)</option>`);
+      }
+      providers.forEach((provider) => {
+        const label = provider.description
+          ? `${provider.name} - ${provider.description}`
+          : provider.name;
+        options.push(`<option value="${escapeHtml(provider.name)}">${escapeHtml(label)}</option>`);
+      });
+      select.innerHTML = options.join("");
+      select.value = currentValue;
+      refreshCustomSelect("cloudProvider");
+    }
+
+    function closeCustomSelects(exceptId = null) {
+      document.querySelectorAll(".select-shell.is-open").forEach((shell) => {
+        const select = shell.querySelector("select");
+        if (select && select.id === exceptId) return;
+        shell.classList.remove("is-open");
+      });
+    }
+
+    function refreshCustomSelect(selectOrId) {
+      const select = typeof selectOrId === "string"
+        ? document.getElementById(selectOrId)
+        : selectOrId;
+      if (!select?.__customSelect) return;
+      select.__customSelect.rebuild();
+    }
+
+    function refreshAllCustomSelects() {
+      document.querySelectorAll(".editor select").forEach((select) => refreshCustomSelect(select));
+    }
+
+    function initCustomSelect(select) {
+      if (!select || select.__customSelect) return;
+      const isSearchable = select.id === "cloudProvider";
+      const shell = document.createElement("div");
+      shell.className = "select-shell";
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "select-trigger";
+      const menu = document.createElement("div");
+      menu.className = "select-menu";
+      const optionsBox = document.createElement("div");
+      const search = isSearchable ? document.createElement("input") : null;
+      if (search) {
+        search.type = "search";
+        search.className = "select-search";
+        search.placeholder = "Поиск провайдера";
+        search.autocomplete = "off";
+        search.spellcheck = false;
+      }
+      select.classList.add("custom-select-native");
+      select.parentNode.insertBefore(shell, select);
+      shell.appendChild(select);
+      shell.appendChild(trigger);
+      shell.appendChild(menu);
+      if (search) {
+        menu.appendChild(search);
+      }
+      menu.appendChild(optionsBox);
+
+      const rebuild = () => {
+        const options = [...select.options];
+        const selectedOption = options.find((option) => option.value === select.value) || options[0];
+        trigger.textContent = selectedOption?.textContent || "";
+        optionsBox.innerHTML = "";
+        const query = search ? search.value.trim().toLowerCase() : "";
+        const visibleOptions = options.filter((option) => {
+          if (!query) return true;
+          return option.textContent.toLowerCase().includes(query) || option.value.toLowerCase().includes(query);
+        });
+        if (!visibleOptions.length) {
+          const empty = document.createElement("div");
+          empty.className = "select-empty";
+          empty.textContent = "Ничего не найдено";
+          optionsBox.appendChild(empty);
+          return;
+        }
+        visibleOptions.forEach((option) => {
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "select-option";
+          if (option.value === select.value) item.classList.add("is-selected");
+          item.disabled = option.disabled;
+          item.textContent = option.textContent;
+          item.addEventListener("click", () => {
+            if (option.disabled) return;
+            select.value = option.value;
+            rebuild();
+            closeCustomSelects();
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+          optionsBox.appendChild(item);
+        });
+      };
+
+      trigger.addEventListener("click", () => {
+        const willOpen = !shell.classList.contains("is-open");
+        closeCustomSelects(select.id);
+        shell.classList.toggle("is-open", willOpen);
+        if (willOpen && search) {
+          search.value = "";
+          rebuild();
+          requestAnimationFrame(() => search.focus());
+        }
+      });
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          closeCustomSelects(select.id);
+          shell.classList.add("is-open");
+          if (search) {
+            search.value = "";
+            rebuild();
+            requestAnimationFrame(() => search.focus());
+          }
+        } else if (event.key === "Escape") {
+          shell.classList.remove("is-open");
+        }
+      });
+      if (search) {
+        search.addEventListener("input", rebuild);
+        search.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            shell.classList.remove("is-open");
+            trigger.focus();
+          }
+        });
+      }
+      select.addEventListener("change", rebuild);
+      const observer = new MutationObserver(rebuild);
+      observer.observe(select, { childList: true, subtree: true, attributes: true });
+      select.__customSelect = { shell, trigger, menu, rebuild, observer, search };
+      rebuild();
+    }
+
+    function findCloudByKey(key) {
+      return state.clouds.find((cloud) => cloud.key === key) || null;
+    }
+
+    function composeCloudDestination(cloudKey, destinationSubpath) {
+      const cloud = findCloudByKey(cloudKey);
+      if (!cloud || !cloud.remote_name) return "";
+      const rootPath = String(cloud.root_path || "").trim().replace(/^\/+|\/+$/g, "");
+      const subpath = String(destinationSubpath || "").trim().replace(/^\/+|\/+$/g, "");
+      const segments = [rootPath, subpath].filter(Boolean);
+      return segments.length ? `${cloud.remote_name}:/${segments.join("/")}` : `${cloud.remote_name}:`;
+    }
+
+    function renderCloudsPanel() {
+      const panel = document.getElementById("cloudsPanel");
+      const toggle = document.getElementById("cloudsToggle");
+      panel.hidden = !state.showClouds;
+      toggle.classList.toggle("is-active", state.showClouds);
+      if (!state.editingCloudKey && !state.creatingNewCloud) {
+        document.getElementById("cloudEditor").hidden = true;
+      }
+      renderCloudList();
+      updateRunsLayout();
+    }
+
+    function renderQueuesPanel() {
+      const panel = document.getElementById("queuesPanel");
+      const toggle = document.getElementById("queuesToggle");
+      panel.hidden = !state.showQueues;
+      toggle.classList.toggle("is-active", state.showQueues);
+      setTogglePressed("queuesParallelProfiles", Boolean(state.queues.allow_parallel_profiles));
+      setTogglePressed("queuesSchedulerQueueing", Boolean(state.queues.allow_scheduler_queueing));
+      setTogglePressed("queuesEventQueueing", Boolean(state.queues.allow_event_queueing));
+      updateRunsLayout();
+    }
+
+    function renderGotifyPanel() {
+      const panel = document.getElementById("gotifyPanel");
+      const toggle = document.getElementById("gotifyToggle");
+      panel.hidden = !state.showGotify;
+      toggle.classList.toggle("is-active", state.showGotify);
+      setTogglePressed("gotifyEnabled", Boolean(state.gotify.enabled));
+      document.getElementById("gotifyUrl").value = state.gotify.url || "";
+      document.getElementById("gotifyToken").value = state.gotify.token || "";
+      document.getElementById("gotifyPriority").value = state.gotify.default_priority || 5;
+      updateRunsLayout();
+    }
+
+    function renderStatus(snapshot) {
+      document.getElementById("statusGrid").innerHTML = metrics(snapshot).map(([k, v]) => `
+        <div class="metric">
+          <div class="k">${k}</div>
+          <div class="v ${k === "last standard" || k === "last heavy" ? "tight" : ""}">${v}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderRuns(runs) {
+      document.getElementById("runsBody").innerHTML = runs.map((run) => `
+        <tr>
+          <td>${run.id}</td>
+          <td class="${statusClass(run.status)}">${run.status}</td>
+          <td>${run.profile}</td>
+          <td>${run.trigger_type}</td>
+          <td>${formatRunTimestamp(run.requested_at)}</td>
+          <td>${run.summary || ""}</td>
+        </tr>
+      `).join("");
+    }
+
+    function commandPreview(job) {
+      if (job.kind === "command") {
+        return (job.command || []).join(" ");
+      }
+      const args = [];
+      if (job.options.max_age) args.push("--max-age", job.options.max_age);
+      if (job.options.min_age) args.push("--min-age", job.options.min_age);
+      (job.options.exclude || []).forEach((pattern) => args.push("--exclude", pattern));
+      (job.options.extra_args || []).forEach((item) => args.push(item));
+      const base = ["rclone", job.transfer_mode, job.source_path, job.destination_path, ...args];
+      return base.join(" ");
+    }
+
+    function renderJobs() {
+      const container = document.getElementById("jobsGrid");
+      if (!state.jobs.length) {
+        container.innerHTML = `<div class="empty">В каталоге пока нет задач. Добавьте первую справа.</div>`;
+        return;
+      }
+      container.innerHTML = state.jobs.map((job) => `
+        <article class="job-card clickable ${job.enabled ? "" : "disabled"} ${state.editingKey === job.key ? "selected" : ""}" onclick="selectJobCard('${job.key}')">
+          <div class="job-top">
+            <div>
+              <div class="job-title">${escapeHtml(job.display_title || job.title || job.description)}</div>
+            </div>
+            <button type="button" class="pill status-toggle ${job.enabled ? "enabled" : "disabled"}" onclick="toggleJobEnabled(event, '${job.key}')">${job.enabled ? "enabled" : "disabled"}</button>
+          </div>
+          <div class="pill-row">
+            <div class="pill">${job.kind}</div>
+            ${job.kind === "backup" ? `<div class="pill">${job.transfer_mode}</div>` : ""}
+            ${job.kind === "backup" && job.retention?.enabled && job.retention?.min_age ? `<div class="pill pill-retention">retention ${escapeHtml(job.retention.min_age)}</div>` : ""}
+            <div class="pill">${job.profile}</div>
+            <div class="pill">${job.schedule_summary}</div>
+            <div class="pill">timeout ${job.timeout_seconds}s</div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function toggleClouds() {
+      state.showClouds = !state.showClouds;
+      if (state.showClouds) {
+        state.showGotify = false;
+        state.showQueues = false;
+        renderGotifyPanel();
+        renderQueuesPanel();
+      }
+      renderCloudsPanel();
+    }
+
+    function toggleGotify() {
+      state.showGotify = !state.showGotify;
+      if (state.showGotify) {
+        state.showClouds = false;
+        renderCloudsPanel();
+        state.showQueues = false;
+        renderQueuesPanel();
+      }
+      renderGotifyPanel();
+    }
+
+    function toggleQueues() {
+      state.showQueues = !state.showQueues;
+      if (state.showQueues) {
+        state.showClouds = false;
+        renderCloudsPanel();
+        state.showGotify = false;
+        renderGotifyPanel();
+      }
+      renderQueuesPanel();
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function formValue(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function isTogglePressed(id) {
+      return document.getElementById(id).getAttribute("aria-pressed") === "true";
+    }
+
+    function setTogglePressed(id, pressed) {
+      document.getElementById(id).setAttribute("aria-pressed", pressed ? "true" : "false");
+    }
+
+    function bindToggleChip(id, onChange = null) {
+      document.getElementById(id).addEventListener("click", () => {
+        const next = !isTogglePressed(id);
+        setTogglePressed(id, next);
+        if (onChange) onChange(next);
+      });
+    }
+
+    function cloudSlug(value) {
+      const normalized = transliterateCyrillic(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .replace(/_+/g, "_");
+      return normalized || "cloud";
+    }
+
+    function makeUniqueCloudKey(baseKey) {
+      const normalizedBase = (baseKey || "cloud").trim() || "cloud";
+      const currentEditingKey = state.editingCloudKey;
+      const takenKeys = new Set(
+        state.clouds
+          .map((cloud) => cloud.key)
+          .filter((key) => key && key !== currentEditingKey)
+      );
+      if (!takenKeys.has(normalizedBase)) {
+        return normalizedBase;
+      }
+      let counter = 2;
+      while (takenKeys.has(`${normalizedBase}_${counter}`)) {
+        counter += 1;
+      }
+      return `${normalizedBase}_${counter}`;
+    }
+
+    function syncCloudKeyFromTitle(force = false) {
+      if (!force && state.cloudKeyEditedManually) return;
+      const titleValue = formValue("cloudTitle");
+      const providerValue = formValue("cloudProvider");
+      const baseKey = cloudSlug(titleValue || providerValue || "cloud");
+      document.getElementById("cloudKey").value = makeUniqueCloudKey(baseKey);
+    }
+
+    function selectedJobKind() {
+      return document.getElementById("jobKind").value === "command" ? "command" : "backup";
+    }
+
+    function selectedTransferMode() {
+      const value = document.getElementById("jobKind").value;
+      return value === "sync" ? "sync" : "copy";
+    }
+
+    function checkedWeekdays() {
+      return [...weekdayGrid.querySelectorAll("input:checked")].map((input) => Number(input.value));
+    }
+
+    function transliterateCyrillic(value) {
+      const map = {
+        а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh", з: "z", и: "i",
+        й: "y", к: "k", л: "l", м: "m", н: "n", о: "o", п: "p", р: "r", с: "s", т: "t",
+        у: "u", ф: "f", х: "h", ц: "ts", ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "",
+        э: "e", ю: "yu", я: "ya"
+      };
+      return String(value || "").split("").map((char) => {
+        const lower = char.toLowerCase();
+        return map[lower] ?? lower;
+      }).join("");
+    }
+
+    function slugifyKey(value) {
+      const normalized = transliterateCyrillic(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .replace(/_+/g, "_");
+      return normalized || defaultKeyBase();
+    }
+
+    function defaultKeyBase() {
+      const value = document.getElementById("jobKind").value;
+      if (value === "command") return "command_job";
+      if (value === "copy") return "copy_job";
+      return "backup_job";
+    }
+
+    function makeUniqueJobKey(baseKey) {
+      const normalizedBase = (baseKey || defaultKeyBase()).trim() || defaultKeyBase();
+      const currentEditingKey = state.editingKey;
+      const takenKeys = new Set(
+        state.jobs
+          .map((job) => job.key)
+          .filter((key) => key && key !== currentEditingKey)
+      );
+      if (!takenKeys.has(normalizedBase)) {
+        return normalizedBase;
+      }
+      let counter = 2;
+      while (takenKeys.has(`${normalizedBase}_${counter}`)) {
+        counter += 1;
+      }
+      return `${normalizedBase}_${counter}`;
+    }
+
+    function syncKeyFromTitle(force = false) {
+      if (!force && state.keyEditedManually) return;
+      const titleValue = formValue("jobTitle");
+      const baseKey = titleValue ? slugifyKey(titleValue) : defaultKeyBase();
+      document.getElementById("jobKey").value = makeUniqueJobKey(baseKey);
+    }
+
+    function setEditorVisibility(visible) {
+      document.getElementById("editorPanel").hidden = !visible;
+      document.getElementById("newJobToggle").classList.toggle("is-active", visible && state.creatingNewJob);
+    }
+
+    function selectJobCard(key) {
+      if (state.editingKey === key) {
+        fillForm(null);
+      } else {
+        editJob(key);
+      }
+      renderJobs();
+    }
+
+    function parseCloudExtraConfig(text) {
+      const result = {};
+      String(text || "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .forEach((line) => {
+          const separatorIndex = line.indexOf("=");
+          if (separatorIndex <= 0) return;
+          const key = line.slice(0, separatorIndex).trim();
+          const value = line.slice(separatorIndex + 1).trim();
+          if (key && value) {
+            result[key] = value;
+          }
+        });
+      return result;
+    }
+
+    function formatCloudExtraConfig(extraConfig) {
+      return Object.entries(extraConfig || {})
+        .sort(([left], [right]) => left.localeCompare(right, "ru"))
+        .map(([key, value]) => `${key} = ${value}`)
+        .join("\n");
+    }
+
+    function providerNeedsJsonToken(provider) {
+      return String(provider || "").trim().toLowerCase() === "drive";
+    }
+
+    function looksLikeJsonObject(value) {
+      const text = String(value || "").trim();
+      return text.startsWith("{") && text.endsWith("}");
+    }
+
+    function updateCloudProviderHint() {
+      const hint = document.getElementById("cloudTokenHint");
+      if (!hint) return;
+      const provider = formValue("cloudProvider");
+      hint.textContent = providerNeedsJsonToken(provider)
+        ? "Для `drive` нужен полный OAuth JSON token, а не пароль приложения и не обычная строка."
+        : "Для простых backend сюда можно класть токен или пароль. Для `drive` нужен полный OAuth JSON.";
+    }
+
+    function collectCloudForm() {
+      syncCloudKeyFromTitle();
+      updateCloudProviderHint();
+      return {
+        key: formValue("cloudKey"),
+        title: formValue("cloudTitle"),
+        provider: formValue("cloudProvider") || "generic",
+        remote_name: formValue("cloudRemoteName") || null,
+        username: formValue("cloudUsername") || null,
+        token: formValue("cloudToken") || null,
+        endpoint: formValue("cloudEndpoint") || null,
+        root_path: formValue("cloudRootPath") || null,
+        notes: formValue("cloudNotes") || null,
+        extra_config: parseCloudExtraConfig(formValue("cloudExtraConfig")),
+        enabled: isTogglePressed("cloudEnabled"),
+      };
+    }
+
+    function fillCloudForm(cloud = null) {
+      const editor = document.getElementById("cloudEditor");
+      state.editingCloudKey = cloud?.key || null;
+      editor.hidden = !cloud && !state.creatingNewCloud;
+      document.getElementById("cloudEditorTitle").textContent = cloud
+        ? `Редактирование: ${cloud.display_title || cloud.title || cloud.key}`
+        : "Новое облако";
+      document.getElementById("cloudKey").value = cloud?.key || "";
+      document.getElementById("cloudTitle").value = cloud?.title || "";
+      renderCloudProviderOptions(cloud?.provider || "generic");
+      document.getElementById("cloudRemoteName").value = cloud?.remote_name || "";
+      document.getElementById("cloudUsername").value = cloud?.username || "";
+      document.getElementById("cloudToken").value = cloud?.token || "";
+      document.getElementById("cloudEndpoint").value = cloud?.endpoint || "";
+      document.getElementById("cloudRootPath").value = cloud?.root_path || "";
+      document.getElementById("cloudNotes").value = cloud?.notes || "";
+      document.getElementById("cloudExtraConfig").value = formatCloudExtraConfig(cloud?.extra_config || {});
+      updateCloudProviderHint();
+      setTogglePressed("cloudEnabled", cloud?.enabled ?? true);
+      state.cloudKeyEditedManually = Boolean(cloud?.key);
+      document.getElementById("deleteCloudButton").disabled = !cloud;
+      renderCloudList();
+      refreshAllCustomSelects();
+    }
+
+    function newCloud() {
+      if (state.creatingNewCloud && !document.getElementById("cloudEditor").hidden) {
+        state.creatingNewCloud = false;
+        fillCloudForm(null);
+        return;
+      }
+      state.creatingNewCloud = true;
+      fillCloudForm(null);
+      document.getElementById("cloudEditor").hidden = false;
+      renderCloudProviderOptions("generic");
+      updateCloudProviderHint();
+      setTogglePressed("cloudEnabled", true);
+      state.cloudKeyEditedManually = false;
+      syncCloudKeyFromTitle(true);
+    }
+
+    function editCloud(key) {
+      if (state.editingCloudKey === key) {
+        state.creatingNewCloud = false;
+        fillCloudForm(null);
+        return;
+      }
+      const cloud = state.clouds.find((item) => item.key === key);
+      if (!cloud) return;
+      state.creatingNewCloud = false;
+      fillCloudForm(cloud);
+    }
+
+    function validateCloud(cloud) {
+      if (!cloud.key) throw new Error("Нужен ключ облака");
+      if (!cloud.title) throw new Error("Нужно название облака");
+    }
+
+    function upsertCurrentCloud() {
+      try {
+        const cloud = collectCloudForm();
+        validateCloud(cloud);
+        const existingIndex = state.clouds.findIndex((item) => item.key === cloud.key || item.key === state.editingCloudKey);
+        if (existingIndex >= 0) {
+          state.clouds.splice(existingIndex, 1, cloud);
+        } else {
+          state.clouds.push(cloud);
+        }
+        state.clouds.sort((a, b) => String(a.title || a.key).localeCompare(String(b.title || b.key), "ru"));
+        state.creatingNewCloud = false;
+        fillCloudForm(cloud);
+        setToast(`Облако ${cloud.key} обновлено локально. Теперь сохраните.`, "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка в форме облака", "error");
+      }
+    }
+
+    function deleteCurrentCloud() {
+      if (!state.editingCloudKey) return;
+      const deletedKey = state.editingCloudKey;
+      state.clouds = state.clouds.filter((cloud) => cloud.key !== deletedKey);
+      state.creatingNewCloud = false;
+      fillCloudForm(null);
+      document.getElementById("cloudEditor").hidden = true;
+      setToast(`Облако ${deletedKey} удалено локально. Теперь сохраните.`, "ok");
+    }
+
+    function toggleJobEnabled(event, key) {
+      event.stopPropagation();
+      const job = state.jobs.find((item) => item.key === key);
+      if (!job) return;
+      job.enabled = !job.enabled;
+      renderJobs();
+      setToast(`Задача ${key} ${job.enabled ? "включена" : "выключена"} локально. Теперь сохраните каталог.`, "ok");
+    }
+
+    function collectFormJob() {
+      syncKeyFromTitle();
+      const title = formValue("jobTitle");
+      const kind = selectedJobKind();
+      const command = formValue("commandList").split("\n").map((item) => item.trim()).filter(Boolean);
+      const cloudKey = kind === "backup" ? formValue("jobCloud") || null : null;
+      const destinationSubpath = kind === "backup" ? (formValue("jobDestinationSubpath") || null) : null;
+      const destinationPath = kind === "backup"
+        ? (composeCloudDestination(cloudKey, destinationSubpath) || formValue("jobDestination"))
+        : null;
+      const job = {
+        key: formValue("jobKey"),
+        title,
+        description: title,
+        kind,
+        source_path: kind === "backup" ? formValue("jobSource") : null,
+        cloud_key: cloudKey,
+        destination_subpath: destinationSubpath,
+        destination_path: destinationPath,
+        transfer_mode: kind === "backup" ? selectedTransferMode() : "copy",
+        command,
+        profile: document.getElementById("jobProfile").value,
+        timeout_seconds: Number(document.getElementById("jobTimeout").value || 1800),
+        order: Number(document.getElementById("jobOrder").value || 10),
+        enabled: state.editingKey
+          ? (state.jobs.find((item) => item.key === state.editingKey)?.enabled ?? true)
+          : true,
+        continue_on_error: true,
+        schedule: {
+          enabled: document.getElementById("scheduleMode").value !== "off",
+          mode: document.getElementById("scheduleMode").value === "off"
+            ? "manual"
+            : document.getElementById("scheduleMode").value,
+          interval_minutes: Number(document.getElementById("scheduleInterval").value || 60),
+          hour: Number(document.getElementById("scheduleHour").value || 3),
+          minute: Number(document.getElementById("scheduleMinute").value || 0),
+          weekdays: checkedWeekdays(),
+        },
+        options: {
+          max_age: formValue("maxAge") || null,
+          min_age: formValue("minAge") || null,
+          exclude: formValue("excludeList").split("\n").map((item) => item.trim()).filter(Boolean),
+          extra_args: formValue("extraArgs").split("\n").map((item) => item.trim()).filter(Boolean),
+        },
+        retention: {
+          enabled: kind === "backup" && selectedTransferMode() !== "sync" ? isTogglePressed("retentionEnabled") : false,
+          min_age: kind === "backup" ? (formValue("retentionMinAge") || null) : null,
+          exclude: kind === "backup"
+            ? formValue("retentionExcludeList").split("\n").map((item) => item.trim()).filter(Boolean)
+            : [],
+          extra_args: kind === "backup"
+            ? formValue("retentionExtraArgs").split("\n").map((item) => item.trim()).filter(Boolean)
+            : [],
+        },
+        notifications: {
+          on_success: isTogglePressed("jobNotifySuccess"),
+          on_failure: isTogglePressed("jobNotifyFailure"),
+          priority: formValue("jobNotifyPriority") ? Number(formValue("jobNotifyPriority")) : null,
+          custom_title: formValue("jobNotifyTitle") || null,
+        }
+      };
+      const destinationPreview = document.getElementById("jobDestinationPreview");
+      if (destinationPreview) destinationPreview.value = destinationPath || "";
+      document.getElementById("commandPreview").value = commandPreview(job);
+      return job;
+    }
+
+    function fillForm(job, options = {}) {
+      const showEditor = options.showEditor ?? Boolean(job);
+      state.creatingNewJob = !job && showEditor;
+      state.editingKey = job ? job.key : null;
+      if (job && state.showGotify) {
+        state.showGotify = false;
+        renderGotifyPanel();
+      }
+      if (job && state.showClouds) {
+        state.showClouds = false;
+        renderCloudsPanel();
+      }
+      if (job && state.showQueues) {
+        state.showQueues = false;
+        renderQueuesPanel();
+      }
+      setEditorVisibility(showEditor);
+      updateRunsLayout();
+      const label = job?.display_title || job?.title || job?.description;
+      document.getElementById("editorTitle").textContent = job ? `Редактирование: ${label}` : "Новая задача";
+      document.getElementById("deleteButton").disabled = !job;
+      document.getElementById("testRunButton").disabled = !job;
+      document.getElementById("jobKind").value = job?.kind === "command"
+        ? "command"
+        : (job?.transfer_mode === "sync" ? "sync" : "copy");
+      document.getElementById("jobKey").value = job?.key || "";
+      document.getElementById("jobTitle").value = job?.title || "";
+      state.keyEditedManually = Boolean(job?.key);
+      document.getElementById("jobSource").value = job?.source_path || "";
+      renderJobCloudOptions(job?.cloud_key || "");
+      document.getElementById("jobDestinationSubpath").value = job?.destination_subpath || "";
+      document.getElementById("jobDestination").value = job?.destination_path || "";
+      document.getElementById("jobDestinationPreview").value = job?.destination_path || "";
+      document.getElementById("commandList").value = (job?.command || []).join("\n");
+      document.getElementById("jobProfile").value = job?.profile || "standard";
+      document.getElementById("jobTimeout").value = job?.timeout_seconds || 1800;
+      document.getElementById("jobOrder").value = job?.order || nextOrder();
+      document.getElementById("scheduleMode").value = job?.schedule?.enabled
+        ? (job?.schedule?.mode || "interval")
+        : "off";
+      document.getElementById("scheduleInterval").value = job?.schedule?.interval_minutes || 60;
+      document.getElementById("scheduleHour").value = job?.schedule?.hour ?? 3;
+      document.getElementById("scheduleMinute").value = job?.schedule?.minute ?? 0;
+      [...weekdayGrid.querySelectorAll("input")].forEach((input) => {
+        input.checked = Boolean(job?.schedule?.weekdays?.includes(Number(input.value)));
+      });
+      document.getElementById("maxAge").value = job?.options?.max_age || "";
+      document.getElementById("minAge").value = job?.options?.min_age || "";
+      document.getElementById("excludeList").value = (job?.options?.exclude || []).join("\n");
+      document.getElementById("extraArgs").value = (job?.options?.extra_args || []).join("\n");
+      setTogglePressed("retentionEnabled", job?.retention?.enabled ?? false);
+      document.getElementById("retentionMinAge").value = job?.retention?.min_age || "";
+      document.getElementById("retentionExcludeList").value = (job?.retention?.exclude || []).join("\n");
+      document.getElementById("retentionExtraArgs").value = (job?.retention?.extra_args || []).join("\n");
+      setTogglePressed("jobNotifySuccess", job?.notifications?.on_success ?? false);
+      setTogglePressed("jobNotifyFailure", job?.notifications?.on_failure ?? true);
+      document.getElementById("jobNotifyPriority").value = job?.notifications?.priority ?? "";
+      document.getElementById("jobNotifyTitle").value = job?.notifications?.custom_title || "";
+      document.getElementById("commandPreview").value = job ? (job.command_preview || commandPreview(job)) : "";
+      refreshAllCustomSelects();
+      updateJobKindVisibility(false);
+      updateScheduleVisibility();
+    }
+
+    function prepareNewJobForm() {
+      fillForm(null, { showEditor: true });
+      document.getElementById("jobKind").value = "copy";
+      state.keyEditedManually = false;
+      document.getElementById("jobKey").value = "";
+      document.getElementById("jobProfile").value = "standard";
+      document.getElementById("jobTimeout").value = 1800;
+      document.getElementById("jobOrder").value = nextOrder();
+      renderJobCloudOptions("");
+      document.getElementById("jobDestinationSubpath").value = "";
+      document.getElementById("jobDestinationPreview").value = "";
+      document.getElementById("commandList").value = "";
+      document.getElementById("scheduleMode").value = "off";
+      document.getElementById("scheduleInterval").value = 60;
+      document.getElementById("scheduleHour").value = 3;
+      document.getElementById("scheduleMinute").value = 0;
+      setTogglePressed("retentionEnabled", false);
+      document.getElementById("retentionMinAge").value = "";
+      document.getElementById("retentionExcludeList").value = "";
+      document.getElementById("retentionExtraArgs").value = "";
+      setTogglePressed("jobNotifySuccess", false);
+      setTogglePressed("jobNotifyFailure", true);
+      document.getElementById("jobNotifyPriority").value = "";
+      document.getElementById("jobNotifyTitle").value = "";
+      [...weekdayGrid.querySelectorAll("input")].forEach((input) => {
+        input.checked = false;
+      });
+      syncKeyFromTitle(true);
+      refreshAllCustomSelects();
+      updateScheduleVisibility();
+    }
+
+    function nextOrder() {
+      if (!state.jobs.length) return 10;
+      return Math.max(...state.jobs.map((job) => Number(job.order || 0))) + 10;
+    }
+
+    function newJob() {
+      if (state.creatingNewJob && !document.getElementById("editorPanel").hidden) {
+        fillForm(null);
+        renderJobs();
+        return;
+      }
+      prepareNewJobForm();
+      renderJobs();
+      closeBrowser();
+    }
+
+    function editJob(key) {
+      const job = state.jobs.find((item) => item.key === key);
+      if (!job) return;
+      fillForm(job);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteCurrentJob() {
+      if (!state.editingKey) return;
+      const deletedKey = state.editingKey;
+      state.jobs = state.jobs.filter((job) => job.key !== deletedKey);
+      renderJobs();
+      fillForm(null);
+      setToast(`Задача ${deletedKey} удалена из локального списка. Нажмите "Сохранить задачи".`, "ok");
+    }
+
+    function validateJob(job) {
+      if (!job.key) throw new Error("Нужен ключ задачи");
+      if (!job.title) throw new Error("Нужен заголовок");
+      if (job.kind === "backup") {
+        if (!job.source_path.startsWith("/")) throw new Error("Source должен быть абсолютным каталогом");
+        if (job.cloud_key) {
+          if (!job.destination_path.includes(":")) throw new Error("Для выбранного облака нужен remote_name");
+        }
+        if (!job.destination_path.includes(":")) throw new Error("Destination должен быть rclone remote path");
+        if (job.retention?.enabled && !job.retention?.min_age) {
+          throw new Error("Для очистки в облаке нужно указать возраст, например 30d");
+        }
+      } else if (!job.command.length) {
+        throw new Error("Для command нужна хотя бы одна строка команды");
+      }
+      if (job.schedule.enabled && job.schedule.mode === "weekly" && !job.schedule.weekdays.length) {
+        throw new Error("Для weekly нужно выбрать хотя бы один день");
+      }
+    }
+
+    function upsertCurrentJob() {
+      try {
+        const job = collectFormJob();
+        validateJob(job);
+        const existingIndex = state.jobs.findIndex((item) => item.key === job.key || item.key === state.editingKey);
+        if (existingIndex >= 0) {
+          state.jobs.splice(existingIndex, 1, job);
+        } else {
+          state.jobs.push(job);
+        }
+        state.jobs.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+        renderJobs();
+        fillForm(job);
+        setToast(`Задача ${job.key} обновлена локально. Теперь сохраните задачи.`, "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка в форме", "error");
+      }
+    }
+
+    async function saveJobs() {
+      try {
+        state.jobs.forEach(validateJob);
+        const response = await fetch("/api/jobs", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobs: state.jobs })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || "save failed");
+        state.jobs = payload.jobs || [];
+        renderJobs();
+        if (state.editingKey) {
+          const updated = state.jobs.find((job) => job.key === state.editingKey);
+          fillForm(updated || null);
+        }
+        setToast("Каталог задач сохранен в jobs JSON.", "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка сохранения", "error");
+      }
+    }
+
+    async function saveGotifySettings() {
+      try {
+        const payload = {
+          enabled: isTogglePressed("gotifyEnabled"),
+          url: formValue("gotifyUrl") || null,
+          token: formValue("gotifyToken") || null,
+          default_priority: Number(document.getElementById("gotifyPriority").value || 5),
+        };
+        const response = await fetch("/api/gotify", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "save failed");
+        state.gotify = result.gotify || payload;
+        renderGotifyPanel();
+        setToast("Настройки Gotify сохранены.", "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка сохранения Gotify", "error");
+      }
+    }
+
+    async function saveQueueSettings() {
+      try {
+        const payload = {
+          allow_parallel_profiles: isTogglePressed("queuesParallelProfiles"),
+          allow_scheduler_queueing: isTogglePressed("queuesSchedulerQueueing"),
+          allow_event_queueing: isTogglePressed("queuesEventQueueing"),
+        };
+        const response = await fetch("/api/queues", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "save failed");
+        state.queues = result.queues || payload;
+        renderQueuesPanel();
+        setToast("Настройки очередей сохранены.", "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка сохранения очередей", "error");
+      }
+    }
+
+    async function saveClouds() {
+      try {
+        state.clouds.forEach(validateCloud);
+        const response = await fetch("/api/clouds", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clouds: state.clouds }),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "save failed");
+        state.clouds = result.clouds || [];
+        renderCloudsPanel();
+        renderJobCloudOptions(formValue("jobCloud"));
+        if (state.editingCloudKey) {
+          const updated = state.clouds.find((cloud) => cloud.key === state.editingCloudKey);
+          fillCloudForm(updated || null);
+        }
+        setToast("Настройки облаков сохранены.", "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка сохранения облаков", "error");
+      }
+    }
+
+    async function importCloudsFromRclone() {
+      try {
+        const response = await fetch("/api/clouds/import-rclone", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "import failed");
+        state.clouds = result.clouds || [];
+        renderCloudsPanel();
+        renderJobCloudOptions(formValue("jobCloud"));
+        if (state.editingCloudKey) {
+          const updated = state.clouds.find((cloud) => cloud.key === state.editingCloudKey);
+          fillCloudForm(updated || null);
+        }
+        setToast("Облака импортированы из rclone.conf.", "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка импорта rclone", "error");
+      }
+    }
+
+    async function importCurrentRemote() {
+      try {
+        const remoteName = formValue("cloudRemoteName");
+        if (!remoteName) {
+          throw new Error("Укажите имя remote");
+        }
+        const response = await fetch(`/api/clouds/import-rclone-remote?remote_name=${encodeURIComponent(remoteName)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "import failed");
+        const cloud = result.cloud || {};
+        if (!formValue("cloudTitle")) {
+          document.getElementById("cloudTitle").value = cloud.title || remoteName;
+        }
+        if (!formValue("cloudKey")) {
+          state.cloudKeyEditedManually = false;
+          document.getElementById("cloudKey").value = cloud.key || "";
+        }
+        renderCloudProviderOptions(cloud.provider || "generic");
+        document.getElementById("cloudRemoteName").value = cloud.remote_name || remoteName;
+        document.getElementById("cloudUsername").value = cloud.username || "";
+        document.getElementById("cloudToken").value = cloud.token || "";
+        document.getElementById("cloudEndpoint").value = cloud.endpoint || "";
+        document.getElementById("cloudRootPath").value = cloud.root_path || "";
+        document.getElementById("cloudNotes").value = cloud.notes || "";
+        document.getElementById("cloudExtraConfig").value = formatCloudExtraConfig(cloud.extra_config || {});
+        setTogglePressed("cloudEnabled", cloud.enabled ?? true);
+        refreshAllCustomSelects();
+        setToast(`Remote ${remoteName} подтянут из rclone.conf`, "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка импорта remote", "error");
+      }
+    }
+
+    async function testCloudConnection() {
+      try {
+        const cloud = collectCloudForm();
+        if (providerNeedsJsonToken(cloud.provider) && cloud.token && !looksLikeJsonObject(cloud.token)) {
+          throw new Error("Для drive в поле Token нужен полный OAuth JSON, а не пароль приложения");
+        }
+        const payload = {
+          provider: cloud.provider || "generic",
+          remote_name: cloud.remote_name || null,
+          username: cloud.username || null,
+          token: cloud.token || null,
+          endpoint: cloud.endpoint || null,
+          root_path: cloud.root_path || null,
+        };
+        const response = await fetch("/api/clouds/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "test failed");
+        const mode = result.used_existing_remote ? " Через текущий rclone.conf." : " Через временную конфигурацию.";
+        const suffix = result.output_preview ? " Доступ подтверждён." : " Подключение успешно.";
+        setToast(`Проверка облака прошла для ${result.target}.${suffix}${mode}`, "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка проверки облака", "error");
+      }
+    }
+
+    async function testGotifySettings() {
+      try {
+        const payload = {
+          enabled: isTogglePressed("gotifyEnabled"),
+          url: formValue("gotifyUrl") || null,
+          token: formValue("gotifyToken") || null,
+          default_priority: Number(document.getElementById("gotifyPriority").value || 5),
+        };
+        const response = await fetch("/api/gotify/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.detail || "test failed");
+        setToast("Тестовое уведомление Gotify отправлено.", "ok");
+      } catch (error) {
+        setToast(error.message || "Ошибка проверки Gotify", "error");
+      }
+    }
+
+    async function enqueueProfile(profile) {
+      try {
+        const response = await fetch("/api/runs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile, source: "dashboard", requested_by: "dashboard" })
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || "request failed");
+        setToast(`Профиль ${profile} поставлен в очередь: run #${payload.run_id}`, "ok");
+        refreshAll();
+      } catch (error) {
+        setToast(error.message || "Ошибка запуска профиля", "error");
+      }
+    }
+
+    async function runJobByKey(key) {
+      try {
+        const response = await fetch(`/api/runs/job/${encodeURIComponent(key)}`, {
+          method: "POST",
+          headers: {}
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || "request failed");
+        setToast(`Задача ${key} поставлена в очередь: run #${payload.run_id}`, "ok");
+        refreshAll();
+      } catch (error) {
+        setToast(error.message || "Ошибка запуска задачи", "error");
+      }
+    }
+
+    function runCurrentJob() {
+      if (!state.editingKey) return;
+      runJobByKey(state.editingKey);
+    }
+
+    function updateScheduleVisibility() {
+      const mode = document.getElementById("scheduleMode").value;
+      document.querySelectorAll("[data-schedule='interval']").forEach((node) => {
+        node.style.display = mode === "interval" ? "" : "none";
+      });
+      document.querySelectorAll("[data-schedule='time']").forEach((node) => {
+        node.style.display = mode === "daily" || mode === "weekly" ? "" : "none";
+      });
+      document.querySelectorAll("[data-schedule='weekly']").forEach((node) => {
+        node.style.display = mode === "weekly" ? "" : "none";
+      });
+      collectFormJob();
+    }
+
+    function updateJobKindVisibility(collect = true) {
+      const kind = selectedJobKind();
+      const showRetention = kind === "backup" && selectedTransferMode() !== "sync";
+      const usingCloud = kind === "backup" && Boolean(formValue("jobCloud"));
+      document.querySelectorAll("[data-job-kind='backup']").forEach((node) => {
+        node.style.display = kind === "backup" ? "" : "none";
+      });
+      document.querySelectorAll("[data-job-kind='command']").forEach((node) => {
+        node.style.display = kind === "command" ? "" : "none";
+      });
+      document.querySelectorAll("[data-cloud-mode='selected']").forEach((node) => {
+        node.style.display = usingCloud ? "" : "none";
+      });
+      document.querySelectorAll("[data-cloud-mode='manual']").forEach((node) => {
+        node.style.display = usingCloud ? "none" : "";
+      });
+      document.querySelectorAll("[data-retention-block='true']").forEach((node) => {
+        node.style.display = showRetention ? "" : "none";
+      });
+      if (state.creatingNewJob && !state.keyEditedManually) {
+        syncKeyFromTitle(true);
+      }
+      if (collect) {
+        collectFormJob();
+      }
+    }
+
+    async function openBrowser(target) {
+      state.browseTarget = target;
+      document.getElementById("browseModal").hidden = false;
+      document.body.style.overflow = "hidden";
+      await browse(null);
+      document.getElementById("browsePanel").focus();
+    }
+
+    function closeBrowser() {
+      document.getElementById("browseModal").hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    function handleBrowseBackdrop(event) {
+      if (event.target.id === "browseModal") {
+        closeBrowser();
+      }
+    }
+
+    function browseUp() {
+      if (state.browseParent) {
+        browse(state.browseParent);
+      }
+    }
+
+    function chooseCurrentDirectory() {
+      if (state.browseCurrentPath) {
+        selectDirectory(state.browseCurrentPath);
+      }
+    }
+
+    function setBrowseSelection(index) {
+      if (!state.browseEntries.length) {
+        state.browseSelectedIndex = 0;
+        return;
+      }
+      const nextIndex = Math.max(0, Math.min(index, state.browseEntries.length - 1));
+      state.browseSelectedIndex = nextIndex;
+      const active = document.querySelector(`.browse-item[data-index="${nextIndex}"]`);
+      if (active) {
+        active.scrollIntoView({ block: "nearest" });
+      }
+      renderBrowseList();
+    }
+
+    function activateBrowseEntry(index, mode = "open") {
+      const entry = state.browseEntries[index];
+      if (!entry) return;
+      if (mode === "select") {
+        selectDirectory(entry.path);
+        return;
+      }
+      if (entry.type === "parent") {
+        browseUp();
+        return;
+      }
+      browse(entry.path);
+    }
+
+    function renderBrowseList() {
+      const list = document.getElementById("browseList");
+      if (!state.browseEntries.length) {
+        list.innerHTML = `<div class="empty">Поддиректорий нет.</div>`;
+        document.getElementById("browseSelection").textContent = "Нет папок";
+        document.getElementById("browseHint").textContent = "Backspace или кнопка сверху вернут на уровень выше.";
+        return;
+      }
+      list.innerHTML = state.browseEntries.map((entry, index) => `
+        <div
+          class="browse-item ${index === state.browseSelectedIndex ? "active" : ""}"
+          data-index="${index}"
+          onclick="setBrowseSelection(${index})"
+          ondblclick="activateBrowseEntry(${index}, 'open')"
+        >
+          <div class="browse-name">
+            <strong>${escapeHtml(entry.label)}</strong>
+            <div class="muted">${escapeHtml(entry.path)}</div>
+          </div>
+          <div class="browse-kind">${escapeHtml(entry.kind)}</div>
+          <div class="browse-hint">${escapeHtml(entry.hint)}</div>
+        </div>
+      `).join("");
+      const active = state.browseEntries[state.browseSelectedIndex];
+      document.getElementById("browseSelection").textContent = active ? active.path : "Нет папок";
+      document.getElementById("browseHint").textContent = active?.type === "parent"
+        ? "Enter или стрелка влево: перейти выше."
+        : "Enter/стрелка вправо: открыть. Space: выбрать папку.";
+    }
+
+    async function browse(path) {
+      try {
+        const url = path ? `/api/fs/browse?path=${encodeURIComponent(path)}` : "/api/fs/browse";
+        const response = await fetch(url);
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || "browse failed");
+        state.browseCurrentPath = payload.path || "";
+        state.browseParent = payload.parent || null;
+        document.getElementById("browsePath").textContent = payload.path || "Корневые директории";
+        const entries = [];
+        if (payload.parent) {
+          entries.push({
+            type: "parent",
+            path: payload.parent,
+            label: "..",
+            kind: "родитель",
+            hint: "шаг назад",
+          });
+        }
+        (payload.directories || []).forEach((dir) => {
+          entries.push({
+            type: "directory",
+            path: dir.path,
+            label: dir.name,
+            kind: "каталог",
+            hint: "открыть или выбрать",
+          });
+        });
+        state.browseEntries = entries;
+        state.browseSelectedIndex = 0;
+        document.getElementById("browseUpButton").disabled = !payload.parent;
+        document.getElementById("browseChooseButton").disabled = !state.browseCurrentPath;
+        renderBrowseList();
+      } catch (error) {
+        setToast(error.message || "Ошибка browse", "error");
+      }
+    }
+
+    function selectDirectory(path) {
+      if (state.browseTarget === "source") {
+        document.getElementById("jobSource").value = path.endsWith("/") ? path : `${path}/`;
+      }
+      collectFormJob();
+      closeBrowser();
+      setToast(`Выбран каталог ${path}`, "ok");
+    }
+
+    async function refreshSnapshot() {
+      const response = await fetch("/api/state");
+      const snapshot = await response.json();
+      renderStatus(snapshot);
+      renderRuns(snapshot.latest_runs || []);
+      updateServiceMessage(snapshot);
+      return snapshot;
+    }
+
+    async function refreshAll() {
+      try {
+        const [, jobs, providers] = await Promise.all([
+          refreshSnapshot(),
+          fetch("/api/jobs"),
+          fetch("/api/rclone/providers"),
+        ]);
+        const jobsPayload = await jobs.json();
+        const providersPayload = await providers.json();
+        state.jobs = jobsPayload.jobs || [];
+        state.clouds = jobsPayload.clouds || [];
+        state.providers = providers.ok ? (providersPayload.providers || []) : [];
+        renderJobCloudOptions(formValue("jobCloud"));
+        renderCloudProviderOptions(formValue("cloudProvider"));
+        state.gotify = jobsPayload.gotify || state.gotify;
+        state.queues = jobsPayload.queues || state.queues;
+        renderJobs();
+        renderCloudsPanel();
+        if (state.editingCloudKey) {
+          const currentCloud = state.clouds.find((cloud) => cloud.key === state.editingCloudKey);
+          fillCloudForm(currentCloud || null);
+        }
+        renderGotifyPanel();
+        renderQueuesPanel();
+        if (!state.editingKey) {
+          fillForm(null, { showEditor: state.creatingNewJob });
+        } else {
+          const current = state.jobs.find((job) => job.key === state.editingKey);
+          fillForm(current || null);
+        }
+      } catch (error) {
+        setToast(error.message || "Ошибка обновления", "error");
+      }
+    }
+
+    document.getElementById("jobTitle").addEventListener("input", () => {
+      syncKeyFromTitle();
+    });
+
+    document.getElementById("messagePanel").addEventListener("click", () => {
+      copyMessagePanelText();
+    });
+
+    document.getElementById("cloudTitle").addEventListener("input", () => {
+      syncCloudKeyFromTitle();
+    });
+
+    document.getElementById("jobKey").addEventListener("input", (event) => {
+      state.keyEditedManually = Boolean(event.target.value.trim());
+    });
+
+    document.getElementById("cloudKey").addEventListener("input", (event) => {
+      state.cloudKeyEditedManually = Boolean(event.target.value.trim());
+    });
+
+    ["jobSource", "jobDestination", "jobDestinationSubpath", "maxAge", "minAge", "excludeList", "extraArgs", "retentionMinAge", "retentionExcludeList", "retentionExtraArgs", "jobNotifyPriority", "jobNotifyTitle", "commandList"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => collectFormJob());
+    });
+    document.getElementById("jobCloud").addEventListener("change", () => updateJobKindVisibility());
+
+    ["cloudProvider", "cloudRemoteName", "cloudUsername", "cloudToken", "cloudEndpoint", "cloudRootPath", "cloudNotes", "cloudExtraConfig"].forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => collectCloudForm());
+    });
+
+    document.getElementById("jobKind").addEventListener("change", () => updateJobKindVisibility());
+
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".select-shell")) {
+        closeCustomSelects();
+      }
+    });
+
+    ["retentionEnabled", "jobNotifySuccess", "jobNotifyFailure"].forEach((id) => {
+      bindToggleChip(id, () => collectFormJob());
+    });
+
+    bindToggleChip("gotifyEnabled");
+    bindToggleChip("cloudEnabled", () => collectCloudForm());
+    ["queuesParallelProfiles", "queuesSchedulerQueueing", "queuesEventQueueing"].forEach((id) => {
+      bindToggleChip(id);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !document.getElementById("browseModal").hidden) {
+        closeBrowser();
+        return;
+      }
+      if (document.getElementById("browseModal").hidden) {
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setBrowseSelection(state.browseSelectedIndex + 1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setBrowseSelection(state.browseSelectedIndex - 1);
+      } else if (event.key === "ArrowRight" || event.key === "Enter") {
+        event.preventDefault();
+        activateBrowseEntry(state.browseSelectedIndex, "open");
+      } else if (event.key === "ArrowLeft" || event.key === "Backspace") {
+        event.preventDefault();
+        browseUp();
+      } else if (event.key === " ") {
+        event.preventDefault();
+        const entry = state.browseEntries[state.browseSelectedIndex];
+        if (entry && entry.type !== "parent") {
+          selectDirectory(entry.path);
+        }
+      }
+    });
+
+    document.querySelectorAll(".editor select").forEach((select) => initCustomSelect(select));
+    refreshAll();
+    setInterval(() => {
+      refreshSnapshot().catch((error) => setToast(error.message || "Ошибка обновления статуса", "error"));
+    }, 10000);
+  </script>
+</body>
+</html>

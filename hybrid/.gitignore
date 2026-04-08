@@ -1,0 +1,8 @@
+.venv/
+data/
+backend/data/
+__pycache__/
+*.pyc
+.env
+.env.systemd
+.env.docker

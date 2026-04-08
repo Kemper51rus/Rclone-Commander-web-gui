@@ -1,0 +1,13 @@
+# Secrets and local environment
+hybrid/.env
+hybrid/backend/app/jobs/default_jobs.json
+
+# Sensitive runtime state and logs
+state/
+hybrid/backend/data/
+hybrid/data/
+
+# Local Python artifacts
+hybrid/.venv/
+hybrid/backend/app/__pycache__/
+*.pyc

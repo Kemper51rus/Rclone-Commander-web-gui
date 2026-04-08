@@ -1,0 +1,16 @@
+[Unit]
+Description=Rclone Hybrid Event Watcher (inotify -> API trigger)
+After=network-online.target rclone-hybrid-web.service
+Wants=network-online.target rclone-hybrid-web.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/rclone-hybrid
+EnvironmentFile=-/opt/rclone-hybrid/hybrid/.env
+ExecStart=/opt/rclone-hybrid/scripts/rclone-watch-hybrid.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

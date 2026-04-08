@@ -1,0 +1,39 @@
+services:
+  hybrid-web:
+    build:
+      context: ..
+      dockerfile: hybrid/backend/Dockerfile
+    container_name: rclone-hybrid-web
+    restart: unless-stopped
+    env_file:
+      - ./.env.docker
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./backend/app/jobs:/app/app/jobs
+      - /media:/media
+      - /srv:/srv
+      - /root/.config/rclone:/root/.config/rclone:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  hybrid-watch:
+    build:
+      context: ..
+      dockerfile: hybrid/backend/Dockerfile
+    container_name: rclone-hybrid-watch
+    restart: unless-stopped
+    env_file:
+      - ./.env.docker
+    depends_on:
+      hybrid-web:
+        condition: service_healthy
+    command: ["/usr/local/bin/rclone-watch-hybrid.sh"]
+    volumes:
+      - /media:/media
+      - /srv:/srv

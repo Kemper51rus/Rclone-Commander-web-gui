@@ -108,20 +108,27 @@
     .hero-actions .hero-bandwidth .select-menu {
       width: 100%;
     }
+    .hero-actions .hero-bandwidth .select-menu {
+      max-height: none;
+      overflow-y: visible;
+    }
     .hero-actions .hero-bandwidth .select-trigger {
       min-height: 42px;
       border-radius: 999px;
       padding: 9px 38px 9px 14px;
       text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .hero-actions button {
+    .hero-actions > button {
       width: auto;
       min-width: 128px;
       justify-content: center;
       padding: 9px 14px;
       min-height: 42px;
     }
-    .hero-actions button.is-active,
+    .hero-actions > button.is-active,
     button.is-active,
     .button-like.is-active,
     button.secondary.is-active,
@@ -131,11 +138,11 @@
       background: linear-gradient(135deg, rgba(124, 224, 255, 0.24), rgba(150, 255, 218, 0.24));
       box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.16);
     }
-    .hero-actions button.has-status-on {
+    .hero-actions > button.has-status-on {
       border-color: rgba(151, 255, 63, 0.52);
       box-shadow: inset 0 0 0 1px rgba(151, 255, 63, 0.12);
     }
-    .hero-actions button.has-status-warning {
+    .hero-actions > button.has-status-warning {
       border-color: rgba(255, 90, 104, 0.75);
       box-shadow: 0 0 0 1px rgba(255, 90, 104, 0.18), inset 0 0 0 1px rgba(255, 90, 104, 0.12);
     }
@@ -275,7 +282,7 @@
       box-shadow: var(--shadow);
       display: none;
       max-height: 260px;
-      overflow-x: hidden;
+      overflow-x: clip;
       overflow-y: auto;
       z-index: 401;
       scrollbar-width: none;
@@ -306,8 +313,21 @@
       border-color: rgba(124, 224, 255, 0.45);
       box-shadow: 0 0 0 3px rgba(124, 224, 255, 0.08), inset 0 0 0 1px rgba(124, 224, 255, 0.12);
     }
+    .select-shell.no-scroll-menu .select-menu {
+      max-height: none;
+      overflow-y: visible;
+    }
+    .select-options {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
     .select-option {
       width: 100%;
+      display: block;
+      min-width: 0;
+      min-height: 0;
       border: 0;
       border-radius: 12px;
       background: transparent;
@@ -315,11 +335,14 @@
       padding: 10px 12px;
       text-align: left;
       cursor: pointer;
+      box-sizing: border-box;
       transition: background 160ms ease, color 160ms ease;
     }
     .select-option:hover,
     .select-option:focus-visible {
       outline: none;
+      transform: none;
+      box-shadow: none;
       background: rgba(124, 224, 255, 0.12);
     }
     .select-option.is-selected {
@@ -335,6 +358,11 @@
       color: var(--soft);
       font-size: 13px;
       text-align: center;
+    }
+    #queuesPanelMenuSpacer {
+      height: 0;
+      pointer-events: none;
+      transition: height 140ms ease;
     }
     .token-card input:focus,
     .editor input:focus,
@@ -1017,7 +1045,6 @@
             </div>
             <div class="row">
               <button class="ghost" id="newJobToggle" onclick="newJob()">Новая задача</button>
-              <button class="secondary" onclick="saveJobs()">Сохранить задачи</button>
             </div>
           </div>
           <div class="jobs-grid" id="jobsGrid"></div>
@@ -1030,7 +1057,7 @@
           <div class="panel-header">
             <div>
               <h3>Облака</h3>
-              <div class="field-meta">Только просмотр remotes из текущего `rclone.conf`. Редактирование через интерфейс отключено.</div>
+              <div class="field-meta">Только просмотр remotes из текущего `rclone.conf`.</div>
             </div>
           </div>
           <div class="clouds-list" id="cloudsList"></div>
@@ -1039,8 +1066,8 @@
         <section class="panel" id="queuesPanel" hidden>
           <div class="token-card" style="padding:0; border:none; background:none;">
             <div>
-              <div class="eyebrow">Тестовый запуск</div>
-              <div class="editor-actions" style="margin-top:10px;" id="queuesLaunchActions"></div>
+              <div class="eyebrow">Тестовый запуск очередей</div>
+              <div class="editor-actions" style="margin-top:10px; justify-content:flex-end;" id="queuesLaunchActions"></div>
             </div>
             <div>
               <div class="eyebrow">Настройка очередей</div>
@@ -1053,17 +1080,15 @@
               <button type="button" class="toggle-chip" id="queuesEventQueueing" aria-pressed="false">События watcher могут вставать в очередь</button>
             </div>
             <small>Если параллельность выключена, одновременно работает только одна очередь. Если queueing выключен, scheduler и watcher пропускают новые постановки при занятой системе.</small>
-            <div class="clouds-list" id="queuesDefinitionsList" style="margin-top:14px;"></div>
-            <div id="queueDefinitionDetails" style="margin-top:14px;"></div>
-            <div class="editor-actions">
+            <div class="editor-actions" style="justify-content:flex-end; margin-top:14px;">
               <button type="button" class="secondary" onclick="addQueueDefinition()">Новая очередь</button>
             </div>
-          </div>
-          <div class="editor-actions">
-            <button onclick="saveQueueSettings()">Сохранить</button>
+            <div class="clouds-list" id="queuesDefinitionsList" style="margin:14px 0 0;"></div>
+            <div id="queueDefinitionDetails" style="margin-top:12px;"></div>
           </div>
         </section>
 
+        <div id="queuesPanelMenuSpacer" aria-hidden="true"></div>
         <div id="historySlotRight"></div>
         <section class="panel" id="runsPanel">
           <div class="panel-header">
@@ -1094,7 +1119,8 @@
               <h2 id="editorTitle">Новая задача</h2>
             </div>
             <div class="row">
-              <button onclick="upsertCurrentJob()">Записать</button>
+              <button onclick="upsertCurrentJob()">Сохранить</button>
+              <button class="secondary" id="testRunButton" onclick="runCurrentJob()" disabled>Тест</button>
             </div>
           </div>
 
@@ -1284,8 +1310,7 @@
 	            </div>
 	          </div>
 	
-          <div class="editor-actions">
-            <button class="secondary" id="testRunButton" onclick="runCurrentJob()" disabled>Тестовый запуск</button>
+          <div class="editor-actions" style="justify-content:flex-end;">
             <button class="ghost" id="deleteButton" onclick="deleteCurrentJob()" disabled>Удалить</button>
           </div>
 
@@ -1420,23 +1445,22 @@
 
     const weekdayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
     let watcherAutoSaveTimer = null;
+    let queueAutoSaveTimer = null;
     const bandwidthPresets = [
       { value: "", label: "Без лимита" },
-      { value: "2M", label: "2 MB/s" },
-      { value: "5M", label: "5 MB/s" },
-      { value: "10M", label: "10 MB/s" },
-      { value: "20M", label: "20 MB/s" },
-      { value: "50M", label: "50 MB/s" },
-      { value: "100M", label: "100 MB/s" },
+      { value: "1250000", label: "10 Mbps" },
+      { value: "6250000", label: "50 Mbps" },
+      { value: "12500000", label: "100 Mbps" },
+      { value: "31250000", label: "250 Mbps" },
+      { value: "87500000", label: "700 Mbps" },
     ];
     const queueBandwidthPresets = [
       { value: "", label: "Глобальный лимит" },
-      { value: "2M", label: "2 MB/s" },
-      { value: "5M", label: "5 MB/s" },
-      { value: "10M", label: "10 MB/s" },
-      { value: "20M", label: "20 MB/s" },
-      { value: "50M", label: "50 MB/s" },
-      { value: "100M", label: "100 MB/s" },
+      { value: "1250000", label: "10 Mbps" },
+      { value: "6250000", label: "50 Mbps" },
+      { value: "12500000", label: "100 Mbps" },
+      { value: "31250000", label: "250 Mbps" },
+      { value: "87500000", label: "700 Mbps" },
     ];
     const weekdayGrid = document.getElementById("weekdayGrid");
     weekdayGrid.innerHTML = weekdayLabels.map((label, index) => `
@@ -1717,8 +1741,9 @@
       const leftSlot = document.getElementById("historySlotLeft");
       const rightSlot = document.getElementById("historySlotRight");
       const runsPanel = document.getElementById("runsPanel");
-      const editorHidden = document.getElementById("editorPanel").hidden;
-      const shouldPlaceRight = state.showQueues || (editorHidden && !state.showGotify && !state.showClouds && !state.showLogging && !state.showWatcher);
+      const rightColumnPanels = document.querySelectorAll("#rightColumn > section.panel:not(#runsPanel)");
+      const hasVisibleRightPanel = [...rightColumnPanels].some((panel) => !panel.hidden);
+      const shouldPlaceRight = !hasVisibleRightPanel;
       const target = shouldPlaceRight ? rightSlot : leftSlot;
       if (runsPanel.parentElement !== target) {
         target.appendChild(runsPanel);
@@ -1732,12 +1757,14 @@
         container.innerHTML = '<div class="empty">В <code>rclone.conf</code> не найдено ни одного remote.</div>';
         return;
       }
-      container.innerHTML = state.clouds.map((cloud) => `
+      container.innerHTML = state.clouds.map((cloud) => {
+        const notes = String(cloud.notes || "").trim();
+        const visibleNotes = notes === "Imported from rclone.conf" ? "" : notes;
+        return `
         <article class="job-card cloud-card ${cloud.enabled ? "" : "disabled"}">
           <div class="job-top">
             <div>
               <div class="job-title">${escapeHtml(cloud.display_title || cloud.title || cloud.key)}</div>
-              <div class="job-meta">${escapeHtml(cloud.key)}</div>
             </div>
             <div class="pill ${cloud.enabled ? "ok" : "bad"}">${cloud.enabled ? "enabled" : "disabled"}</div>
           </div>
@@ -1746,17 +1773,18 @@
             ${cloud.remote_name ? `<div class="pill">${escapeHtml(cloud.remote_name)}</div>` : ""}
             ${cloud.username ? `<div class="pill">${escapeHtml(cloud.username)}</div>` : ""}
           </div>
-          ${cloud.root_path || cloud.endpoint || cloud.notes ? `
+          ${cloud.root_path || cloud.endpoint || visibleNotes ? `
             <div class="job-meta" style="margin-top:10px;">
               ${cloud.root_path ? `root: ${escapeHtml(cloud.root_path)}` : ""}
               ${cloud.root_path && cloud.endpoint ? " • " : ""}
               ${cloud.endpoint ? `endpoint: ${escapeHtml(cloud.endpoint)}` : ""}
-              ${(cloud.root_path || cloud.endpoint) && cloud.notes ? " • " : ""}
-              ${cloud.notes ? escapeHtml(cloud.notes) : ""}
+              ${(cloud.root_path || cloud.endpoint) && visibleNotes ? " • " : ""}
+              ${visibleNotes ? escapeHtml(visibleNotes) : ""}
             </div>
           ` : ""}
         </article>
-      `).join("");
+      `;
+      }).join("");
     }
 
     function queueDefinitions() {
@@ -1768,15 +1796,13 @@
       const definitions = queueDefinitions();
       if (!definitions.length) return -1;
       const currentIndex = definitions.findIndex((item) => item.key === state.selectedQueueKey);
-      if (currentIndex >= 0) return currentIndex;
-      state.selectedQueueKey = definitions[0].key;
-      return 0;
+      return currentIndex >= 0 ? currentIndex : -1;
     }
 
     function selectQueueDefinition(index) {
       const item = queueDefinitions()[index];
       if (!item) return;
-      state.selectedQueueKey = item.key;
+      state.selectedQueueKey = state.selectedQueueKey === item.key ? null : item.key;
       renderQueueDefinitions();
     }
 
@@ -1820,6 +1846,7 @@
         shell.classList.remove("is-open");
         shell.closest(".panel, .hero")?.classList.remove("has-open-select");
       });
+      syncQueuesPanelMenuSpacer();
     }
 
     function refreshCustomSelect(selectOrId) {
@@ -1834,17 +1861,44 @@
       document.querySelectorAll(".editor select").forEach((select) => refreshCustomSelect(select));
     }
 
+    function syncQueuesPanelMenuSpacer() {
+      const spacer = document.getElementById("queuesPanelMenuSpacer");
+      const panel = document.getElementById("queuesPanel");
+      if (!spacer || !panel || panel.hidden) {
+        if (spacer) spacer.style.height = "0px";
+        return;
+      }
+      const openShell = panel.querySelector(".select-shell.no-scroll-menu.is-open");
+      if (!openShell) {
+        spacer.style.height = "0px";
+        return;
+      }
+      const menu = openShell.querySelector(".select-menu");
+      if (!menu) {
+        spacer.style.height = "0px";
+        return;
+      }
+      const panelRect = panel.getBoundingClientRect();
+      const menuRect = menu.getBoundingClientRect();
+      const overflow = Math.max(0, Math.ceil(menuRect.bottom - panelRect.bottom) + 12);
+      spacer.style.height = overflow > 0 ? `${overflow}px` : "0px";
+    }
+
     function initCustomSelect(select) {
       if (!select || select.__customSelect) return;
       const isSearchable = false;
       const shell = document.createElement("div");
       shell.className = "select-shell";
+      if (select.closest("#queuesPanel")) {
+        shell.classList.add("no-scroll-menu");
+      }
       const trigger = document.createElement("button");
       trigger.type = "button";
       trigger.className = "select-trigger";
       const menu = document.createElement("div");
       menu.className = "select-menu";
       const optionsBox = document.createElement("div");
+      optionsBox.className = "select-options";
       const search = isSearchable ? document.createElement("input") : null;
       if (search) {
         search.type = "search";
@@ -1892,6 +1946,7 @@
             select.value = option.value;
             rebuild();
             closeCustomSelects();
+            syncQueuesPanelMenuSpacer();
             select.dispatchEvent(new Event("change", { bubbles: true }));
           });
           optionsBox.appendChild(item);
@@ -1903,6 +1958,7 @@
         closeCustomSelects(select.id);
         shell.classList.toggle("is-open", willOpen);
         shell.closest(".panel, .hero")?.classList.toggle("has-open-select", willOpen);
+        syncQueuesPanelMenuSpacer();
         if (willOpen && search) {
           search.value = "";
           rebuild();
@@ -1915,6 +1971,7 @@
           closeCustomSelects(select.id);
           shell.classList.add("is-open");
           shell.closest(".panel, .hero")?.classList.add("has-open-select");
+          syncQueuesPanelMenuSpacer();
           if (search) {
             search.value = "";
             rebuild();
@@ -1923,6 +1980,7 @@
         } else if (event.key === "Escape") {
           shell.classList.remove("is-open");
           shell.closest(".panel, .hero")?.classList.remove("has-open-select");
+          syncQueuesPanelMenuSpacer();
         }
       });
       if (search) {
@@ -1932,6 +1990,7 @@
             event.preventDefault();
             shell.classList.remove("is-open");
             shell.closest(".panel, .hero")?.classList.remove("has-open-select");
+            syncQueuesPanelMenuSpacer();
             trigger.focus();
           }
         });
@@ -1976,6 +2035,7 @@
       renderQueueLaunchActions();
       renderQueueDefinitions();
       updateRunsLayout();
+      syncQueuesPanelMenuSpacer();
     }
 
     function renderQueueLaunchActions() {
@@ -1983,9 +2043,9 @@
       if (!container) return;
       const definitions = queueDefinitions().filter((item) => item.enabled !== false);
       const buttons = definitions.map((item) => (
-        `<button type="button" onclick="enqueueProfile('${escapeHtml(item.key)}')">Запустить ${escapeHtml(item.title || item.key)}</button>`
+        `<button type="button" onclick="enqueueProfile('${escapeHtml(item.key)}')">${escapeHtml(item.title || item.key)}</button>`
       ));
-      buttons.push('<button type="button" onclick="enqueueAllQueues()">Запустить всё</button>');
+      buttons.push('<button type="button" onclick="enqueueAllQueues()">All</button>');
       container.innerHTML = buttons.join("");
     }
 
@@ -2014,8 +2074,9 @@
       const activeIndex = selectedQueueIndex();
       container.innerHTML = definitions.map((item, index) => {
         const queueLimit = normalizeBandwidthLimit(item.bandwidth_limit);
-        const globalLimit = normalizeBandwidthLimit(state.bandwidth?.limit);
-        const queueLimitLabel = queueLimit && queueLimit !== globalLimit ? queueLimit : "";
+        const queueLimitLabel = queueLimit
+          ? formatBandwidthLimitLabel(queueLimit)
+          : formatBandwidthLimitLabel(state.bandwidth?.limit, "Без лимита");
         return `
         <article class="job-card cloud-card clickable ${item.enabled === false ? "disabled" : ""} ${index === activeIndex ? "selected" : ""}" onclick="selectQueueDefinition(${index})">
           <div class="job-top">
@@ -2026,7 +2087,7 @@
           </div>
           <div class="pill-row" style="margin-top:10px;">
             <div class="pill">воркеров ${Number(item.workers || 1)}</div>
-            ${queueLimitLabel ? `<div class="pill">${escapeHtml(queueLimitLabel)}</div>` : ""}
+            <div class="pill">Лимит скорости ${escapeHtml(queueLimitLabel)}</div>
           </div>
         </article>
       `;
@@ -2048,19 +2109,19 @@
           <div class="editor-grid">
             <div class="field">
               <label>Название</label>
-              <input value="${escapeHtml(selected.title || "")}" oninput="updateQueueDefinitionField(${activeIndex}, 'title', this.value)" />
+              <input value="${escapeHtml(selected.title || "")}" oninput="updateQueueDefinitionField(${activeIndex}, 'title', this.value)" onblur="updateQueueDefinitionField(${activeIndex}, 'title', this.value, { rerender: true, saveMode: 'immediate' })" />
             </div>
             <div class="field">
               <label>Ключ</label>
-              <input value="${escapeHtml(selected.key)}" oninput="updateQueueDefinitionKey(${activeIndex}, this.value)" />
+              <input value="${escapeHtml(selected.key)}" oninput="updateQueueDefinitionKey(${activeIndex}, this.value)" onblur="updateQueueDefinitionKey(${activeIndex}, this.value, { rerender: true, saveMode: 'immediate' })" />
             </div>
             <div class="field">
               <label>Воркеры</label>
-              <input type="number" min="1" value="${Number(selected.workers || 1)}" oninput="updateQueueDefinitionField(${activeIndex}, 'workers', this.value)" />
+              <input type="number" min="1" value="${Number(selected.workers || 1)}" oninput="updateQueueDefinitionField(${activeIndex}, 'workers', this.value)" onblur="updateQueueDefinitionField(${activeIndex}, 'workers', this.value, { rerender: true, saveMode: 'immediate' })" />
             </div>
             <div class="field">
               <label>Лимит скорости</label>
-              <select onchange="updateQueueDefinitionField(${activeIndex}, 'bandwidth_limit', this.value)">${queueBandwidthOptionsMarkup(selected.bandwidth_limit || "")}</select>
+              <select onchange="updateQueueDefinitionField(${activeIndex}, 'bandwidth_limit', this.value, { rerender: true, saveMode: 'immediate' })">${queueBandwidthOptionsMarkup(selected.bandwidth_limit || "")}</select>
             </div>
           </div>
           <div class="editor-actions">
@@ -2084,26 +2145,34 @@
       state.selectedQueueKey = key;
       renderQueuesPanel();
       renderQueueOptions(formValue("jobProfile"));
+      saveQueueSettings({ silent: true, rerender: false });
     }
 
-    function updateQueueDefinitionField(index, field, value) {
+    function updateQueueDefinitionField(index, field, value, options = {}) {
       const definitions = queueDefinitions();
       const item = definitions[index];
       if (!item) return;
+      const { rerender = false, saveMode = "debounced" } = options;
       item[field] = field === "workers" ? Math.max(1, Number(value || 1)) : value;
-      if (field === "title" || field === "workers" || field === "bandwidth_limit") {
-        renderQueueDefinitions();
-      }
-      if (field === "title") {
+      if (field === "title" && rerender) {
         renderQueueLaunchActions();
         renderQueueOptions(formValue("jobProfile"));
       }
+      if (rerender) {
+        renderQueueDefinitions();
+      }
+      if (saveMode === "immediate") {
+        saveQueueSettings({ silent: true, rerender: false });
+      } else if (saveMode !== "off") {
+        scheduleQueueAutoSave();
+      }
     }
 
-    function updateQueueDefinitionKey(index, value) {
+    function updateQueueDefinitionKey(index, value, options = {}) {
       const definitions = queueDefinitions();
       const item = definitions[index];
       if (!item) return;
+      const { rerender = false, saveMode = "debounced" } = options;
       const previousKey = item.key;
       const normalized = slugifyKey(value || item.title || `queue_${index + 1}`);
       item.key = normalized;
@@ -2117,8 +2186,16 @@
         document.getElementById("jobProfile").value = normalized;
       }
       state.selectedQueueKey = normalized;
-      renderQueuesPanel();
       renderQueueOptions(normalized);
+      renderQueueLaunchActions();
+      if (rerender) {
+        renderQueuesPanel();
+      }
+      if (saveMode === "immediate") {
+        saveQueueSettings({ silent: true, rerender: false });
+      } else if (saveMode !== "off") {
+        scheduleQueueAutoSave();
+      }
     }
 
     function toggleQueueDefinitionEnabled(event, index) {
@@ -2128,6 +2205,7 @@
       item.enabled = item.enabled === false ? true : false;
       renderQueuesPanel();
       renderQueueOptions(formValue("jobProfile"));
+      saveQueueSettings({ silent: true, rerender: false });
     }
 
     function removeQueueDefinition(index) {
@@ -2144,6 +2222,7 @@
       state.selectedQueueKey = fallbackKey;
       renderQueuesPanel();
       renderQueueOptions(fallbackKey);
+      saveQueueSettings({ silent: true, rerender: false });
     }
 
     function renderGotifyPanel() {
@@ -2226,15 +2305,14 @@
             <div class="job-top">
               <div>
                 <div class="job-title">${escapeHtml(item.title || item.job_key || "job")}</div>
-                <div class="job-meta">${escapeHtml(item.job_key || "")}</div>
               </div>
               <div class="pill ${item.active ? "ok" : "bad"}">${item.active ? "наблюдается" : "неактивно"}</div>
             </div>
             <div class="pill-row">
               <div class="pill">${escapeHtml(item.profile || "standard")}</div>
+              ${item.path ? `<div class="pill">${escapeHtml(item.path)}</div>` : ""}
               ${item.exists === false ? '<div class="pill pill-retention">путь отсутствует</div>' : ""}
             </div>
-            <div class="job-meta" style="margin-top:10px;">${escapeHtml(item.path || "")}</div>
           </article>
         `).join("");
       }
@@ -2316,6 +2394,13 @@
       return normalized;
     }
 
+    function formatBandwidthLimitLabel(value, fallbackLabel = "Без лимита") {
+      const normalized = normalizeBandwidthLimit(value);
+      if (!normalized) return fallbackLabel;
+      const preset = [...queueBandwidthPresets, ...bandwidthPresets].find((item) => item.value === normalized);
+      return preset?.label || normalized;
+    }
+
     function normalizeWatcherDebounce(value, fallback = 45) {
       const parsed = Number(value);
       if (!Number.isFinite(parsed)) {
@@ -2390,9 +2475,16 @@
       `).join("");
     }
 
+    function closeJobEditor() {
+      if (document.getElementById("editorPanel").hidden) return;
+      fillForm(null);
+      renderJobs();
+    }
+
     function toggleClouds() {
       state.showClouds = !state.showClouds;
       if (state.showClouds) {
+        closeJobEditor();
         state.showGotify = false;
         state.showQueues = false;
         state.showLogging = false;
@@ -2408,6 +2500,7 @@
     function toggleGotify() {
       state.showGotify = !state.showGotify;
       if (state.showGotify) {
+        closeJobEditor();
         state.showClouds = false;
         renderCloudsPanel();
         state.showQueues = false;
@@ -2423,6 +2516,7 @@
     function toggleQueues() {
       state.showQueues = !state.showQueues;
       if (state.showQueues) {
+        closeJobEditor();
         state.showClouds = false;
         renderCloudsPanel();
         state.showGotify = false;
@@ -2438,6 +2532,7 @@
     function toggleLogging() {
       state.showLogging = !state.showLogging;
       if (state.showLogging) {
+        closeJobEditor();
         state.showClouds = false;
         renderCloudsPanel();
         state.showGotify = false;
@@ -2453,6 +2548,7 @@
     function toggleWatcher() {
       state.showWatcher = !state.showWatcher;
       if (state.showWatcher) {
+        closeJobEditor();
         state.showClouds = false;
         renderCloudsPanel();
         state.showGotify = false;
@@ -2780,13 +2876,51 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function deleteCurrentJob() {
+    async function persistJobsState(successMessage = "Каталог задач сохранен в jobs JSON.") {
+      state.jobs.forEach(validateJob);
+      const response = await fetch("/api/jobs", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobs: state.jobs })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail || "save failed");
+      state.jobs = payload.jobs || [];
+      state.queues = payload.queues || state.queues;
+      state.bandwidth = payload.bandwidth || state.bandwidth;
+      state.logging = payload.logging || state.logging;
+      state.watcher = payload.watcher || state.watcher;
+      renderBandwidthControl();
+      renderLoggingPanel();
+      renderWatcherPanel();
+      renderJobs();
+      renderQueuesPanel();
+      if (state.editingKey) {
+        const updated = state.jobs.find((job) => job.key === state.editingKey);
+        fillForm(updated || null);
+      }
+      setToast(successMessage, "ok");
+      refreshSnapshot().catch(() => {});
+      return payload;
+    }
+
+    async function deleteCurrentJob() {
       if (!state.editingKey) return;
       const deletedKey = state.editingKey;
+      const previousJobs = state.jobs.map((job) => ({ ...job }));
+      const previousEditingKey = state.editingKey;
       state.jobs = state.jobs.filter((job) => job.key !== deletedKey);
-      renderJobs();
-      fillForm(null);
-      setToast(`Задача ${deletedKey} удалена из локального списка. Нажмите "Сохранить задачи".`, "ok");
+      try {
+        await persistJobsState(`Задача ${deletedKey} удалена.`);
+        fillForm(null);
+      } catch (error) {
+        state.jobs = previousJobs;
+        state.editingKey = previousEditingKey;
+        renderJobs();
+        const restored = state.jobs.find((job) => job.key === previousEditingKey);
+        fillForm(restored || null);
+        setToast(error.message || "Ошибка удаления", "error");
+      }
     }
 
     function validateJob(job) {
@@ -2812,10 +2946,14 @@
       }
     }
 
-    function upsertCurrentJob() {
+    async function upsertCurrentJob() {
+      let previousJobs = null;
+      let previousEditingKey = null;
       try {
         const job = collectFormJob();
         validateJob(job);
+        previousJobs = state.jobs.map((item) => ({ ...item }));
+        previousEditingKey = state.editingKey;
         const existingIndex = state.jobs.findIndex((item) => item.key === job.key || item.key === state.editingKey);
         if (existingIndex >= 0) {
           state.jobs.splice(existingIndex, 1, job);
@@ -2823,41 +2961,26 @@
           state.jobs.push(job);
         }
         state.jobs.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+        state.editingKey = job.key;
         renderJobs();
         renderQueueLaunchActions();
         fillForm(job);
-        setToast(`Задача ${job.key} обновлена локально. Теперь сохраните задачи.`, "ok");
+        await persistJobsState(`Задача ${job.key} сохранена.`);
       } catch (error) {
+        if (previousJobs) {
+          state.jobs = previousJobs;
+          state.editingKey = previousEditingKey;
+          renderJobs();
+          const restored = state.jobs.find((item) => item.key === previousEditingKey);
+          fillForm(restored || null);
+        }
         setToast(error.message || "Ошибка в форме", "error");
       }
     }
 
     async function saveJobs() {
       try {
-        state.jobs.forEach(validateJob);
-        const response = await fetch("/api/jobs", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jobs: state.jobs })
-        });
-        const payload = await response.json();
-        if (!response.ok) throw new Error(payload.detail || "save failed");
-        state.jobs = payload.jobs || [];
-        state.queues = payload.queues || state.queues;
-        state.bandwidth = payload.bandwidth || state.bandwidth;
-        state.logging = payload.logging || state.logging;
-        state.watcher = payload.watcher || state.watcher;
-        renderBandwidthControl();
-        renderLoggingPanel();
-        renderWatcherPanel();
-        renderJobs();
-        renderQueuesPanel();
-        if (state.editingKey) {
-          const updated = state.jobs.find((job) => job.key === state.editingKey);
-          fillForm(updated || null);
-        }
-        setToast("Каталог задач сохранен в jobs JSON.", "ok");
-        refreshSnapshot().catch(() => {});
+        await persistJobsState();
       } catch (error) {
         setToast(error.message || "Ошибка сохранения", "error");
       }
@@ -2886,31 +3009,40 @@
       }
     }
 
-    async function saveQueueSettings() {
+    function buildQueueSettingsPayload() {
+      const payload = {
+        allow_parallel_profiles: isTogglePressed("queuesParallelProfiles"),
+        allow_scheduler_queueing: isTogglePressed("queuesSchedulerQueueing"),
+        allow_event_queueing: isTogglePressed("queuesEventQueueing"),
+        definitions: queueDefinitions().map((item) => ({
+          key: slugifyKey(item.key || item.title || "queue"),
+          title: (item.title || item.key || "").trim() || null,
+          workers: Math.max(1, Number(item.workers || 1)),
+          bandwidth_limit: normalizeBandwidthLimit(item.bandwidth_limit) || null,
+          enabled: item.enabled !== false,
+        })),
+      };
+      const seenKeys = new Set();
+      payload.definitions.forEach((item) => {
+        if (!item.key) throw new Error("У очереди нужен ключ");
+        if (seenKeys.has(item.key)) throw new Error(`Дублирующийся ключ очереди: ${item.key}`);
+        seenKeys.add(item.key);
+      });
+      state.jobs.forEach((job) => {
+        if (!seenKeys.has(job.profile)) {
+          throw new Error(`Задача ${job.key} ссылается на отсутствующую очередь ${job.profile}`);
+        }
+      });
+      return payload;
+    }
+
+    async function saveQueueSettings({ silent = false, rerender = true } = {}) {
+      if (queueAutoSaveTimer) {
+        clearTimeout(queueAutoSaveTimer);
+        queueAutoSaveTimer = null;
+      }
       try {
-        const payload = {
-          allow_parallel_profiles: isTogglePressed("queuesParallelProfiles"),
-          allow_scheduler_queueing: isTogglePressed("queuesSchedulerQueueing"),
-          allow_event_queueing: isTogglePressed("queuesEventQueueing"),
-          definitions: queueDefinitions().map((item) => ({
-            key: slugifyKey(item.key || item.title || "queue"),
-            title: (item.title || item.key || "").trim() || null,
-            workers: Math.max(1, Number(item.workers || 1)),
-            bandwidth_limit: normalizeBandwidthLimit(item.bandwidth_limit) || null,
-            enabled: item.enabled !== false,
-          })),
-        };
-        const seenKeys = new Set();
-        payload.definitions.forEach((item) => {
-          if (!item.key) throw new Error("У очереди нужен ключ");
-          if (seenKeys.has(item.key)) throw new Error(`Дублирующийся ключ очереди: ${item.key}`);
-          seenKeys.add(item.key);
-        });
-        state.jobs.forEach((job) => {
-          if (!seenKeys.has(job.profile)) {
-            throw new Error(`Задача ${job.key} ссылается на отсутствующую очередь ${job.profile}`);
-          }
-        });
+        const payload = buildQueueSettingsPayload();
         const response = await fetch("/api/queues", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -2919,12 +3051,26 @@
         const result = await response.json();
         if (!response.ok) throw new Error(result.detail || "save failed");
         state.queues = result.queues || payload;
-        renderQueuesPanel();
+        if (rerender) {
+          renderQueuesPanel();
+        }
         renderQueueOptions(formValue("jobProfile"));
-        setToast("Настройки очередей сохранены.", "ok");
+        if (!silent) {
+          setToast("Настройки очередей сохранены.", "ok");
+        }
       } catch (error) {
         setToast(error.message || "Ошибка сохранения очередей", "error");
       }
+    }
+
+    function scheduleQueueAutoSave(delayMs = 450) {
+      if (queueAutoSaveTimer) {
+        clearTimeout(queueAutoSaveTimer);
+      }
+      queueAutoSaveTimer = setTimeout(() => {
+        queueAutoSaveTimer = null;
+        saveQueueSettings({ silent: true, rerender: false });
+      }, delayMs);
     }
 
     async function saveBandwidthSettings() {
@@ -3464,6 +3610,7 @@
         closeCustomSelects();
       }
     });
+    window.addEventListener("resize", () => syncQueuesPanelMenuSpacer());
 
     ["retentionEnabled", "jobNotifySuccess", "jobNotifyFailure", "jobWatcherEnabled"].forEach((id) => {
       bindToggleChip(id, () => collectFormJob());
@@ -3476,8 +3623,17 @@
       saveWatcherSettings();
     });
     bindToggleChip("rcloneLogEnabled", () => saveLoggingSettings());
-    ["queuesParallelProfiles", "queuesSchedulerQueueing", "queuesEventQueueing"].forEach((id) => {
-      bindToggleChip(id);
+    bindToggleChip("queuesParallelProfiles", (next) => {
+      state.queues = { ...state.queues, allow_parallel_profiles: next };
+      saveQueueSettings({ silent: true, rerender: false });
+    });
+    bindToggleChip("queuesSchedulerQueueing", (next) => {
+      state.queues = { ...state.queues, allow_scheduler_queueing: next };
+      saveQueueSettings({ silent: true, rerender: false });
+    });
+    bindToggleChip("queuesEventQueueing", (next) => {
+      state.queues = { ...state.queues, allow_event_queueing: next };
+      saveQueueSettings({ silent: true, rerender: false });
     });
 
     document.addEventListener("keydown", (event) => {

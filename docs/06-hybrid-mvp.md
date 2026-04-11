@@ -37,6 +37,10 @@ Catalog содержит:
 - destination path
 - cloud binding
 - transfer mode: `copy` или `sync`
+- structured `rclone`-опции у backup и retention:
+  `transfers`, `checkers`, `tpslimit`, `tpslimit_burst`, `retries`, `low_level_retries`,
+  `retries_sleep`, `fast_list`, `no_traverse`, `debug_dump`, `extra_args`
+- `Mail.ru safe preset` для снижения параллелизма и частоты API-запросов
 - timeout
 - schedule
 - notifications
@@ -53,8 +57,9 @@ Catalog содержит:
 ### Logging
 
 - глобальное включение подробного `rclone`-лога
-- автоматическое включение подробного `rclone`-лога для backup-задачи после 3 подряд неуспешных запусков
-- автоматическое отключение этого auto-режима после 3 подряд успешных запусков той же backup-задачи
+- автоматическое включение подробного `rclone`-лога для backup-задачи по настраиваемому порогу подряд неуспешных запусков
+- автоматическое отключение этого auto-режима после такого же порога подряд успешных запусков той же backup-задачи
+- debug-режим с `--dump headers|headers,bodies` и `--log-level DEBUG` для конкретной задачи
 
 ### Watcher
 
@@ -70,6 +75,7 @@ Catalog содержит:
 - endpoint
 - root path
 - optional extra config
+- app-level флаг `serialize_provider_lock` для сериализации запусков Mail.ru remote
 
 ---
 
@@ -115,3 +121,4 @@ default_jobs.example.json -> default_jobs.json
 3. Проверить destination paths и schedules
 4. Проверить retention policies
 5. Проверить настройки очередей, watcher, логирования и лимитов скорости
+6. Для Mail.ru remote при необходимости включить safe preset у задач и сериализацию на вкладке `Облака`

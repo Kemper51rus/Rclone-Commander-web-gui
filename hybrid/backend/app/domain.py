@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
+import shlex
 import threading
 from typing import Any
 
@@ -11,6 +12,20 @@ VALID_TRANSFER_MODES = {"copy", "sync"}
 VALID_JOB_KINDS = {"backup", "command"}
 VALID_SCHEDULE_MODES = {"manual", "interval", "daily", "weekly"}
 DISABLED_BWLIMIT_VALUES = {"off", "none", "unlimited", "disabled", "0", "0b", "0k", "0m", "0g"}
+VALID_DEBUG_DUMP_VALUES = {"headers", "headers,bodies"}
+SINGLETON_RCLONE_FLAGS = {
+    "--transfers",
+    "--checkers",
+    "--tpslimit",
+    "--tpslimit-burst",
+    "--retries",
+    "--low-level-retries",
+    "--retries-sleep",
+    "--timeout",
+    "--contimeout",
+    "--log-level",
+    "--dump",
+}
 
 DEFAULT_RCLONE_ARGS = [
     "--contimeout",
@@ -33,6 +48,93 @@ DEFAULT_RCLONE_ARGS = [
     "--log-level",
     "INFO",
 ]
+
+
+def _normalize_optional_text(value: str | None) -> str | None:
+    normalized = str(value or "").strip()
+    return normalized or None
+
+
+def _normalize_optional_int(value: Any, *, minimum: int = 0) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError):
+        return None
+    return max(minimum, normalized)
+
+
+def _normalize_optional_float(value: Any, *, minimum: float = 0.0) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError):
+        return None
+    return max(minimum, normalized)
+
+
+def _normalize_debug_dump(value: str | None) -> str | None:
+    normalized = str(value or "").strip().lower()
+    return normalized if normalized in VALID_DEBUG_DUMP_VALUES else None
+
+
+def _split_extra_args(extra_args: list[str]) -> list[str]:
+    tokens: list[str] = []
+    for raw in extra_args:
+        try:
+            parts = shlex.split(raw)
+        except ValueError:
+            parts = [str(raw).strip()]
+        tokens.extend(part for part in parts if str(part).strip())
+    return tokens
+
+
+def _append_singleton_arg(args: list[str], flag: str, value: str | int | float | None) -> None:
+    if value in (None, ""):
+        return
+    rendered = f"{value:g}" if isinstance(value, float) else str(value)
+    args.extend([flag, rendered])
+
+
+def normalize_single_value_flags(argv: list[str]) -> list[str]:
+    entries: list[list[str] | None] = []
+    latest_positions: dict[str, int] = {}
+    index = 0
+    while index < len(argv):
+        current = str(argv[index])
+        singleton_flag = None
+        pair: list[str]
+
+        if current in SINGLETON_RCLONE_FLAGS:
+            singleton_flag = current
+            if index + 1 < len(argv):
+                pair = [current, str(argv[index + 1])]
+                index += 2
+            else:
+                pair = [current]
+                index += 1
+        else:
+            for flag in SINGLETON_RCLONE_FLAGS:
+                prefix = f"{flag}="
+                if current.startswith(prefix):
+                    singleton_flag = flag
+                    pair = [current]
+                    index += 1
+                    break
+            else:
+                pair = [current]
+                index += 1
+
+        if singleton_flag is not None:
+            previous_position = latest_positions.get(singleton_flag)
+            if previous_position is not None:
+                entries[previous_position] = None
+            latest_positions[singleton_flag] = len(entries)
+        entries.append(pair)
+
+    return [item for pair in entries if pair is not None for item in pair]
 
 
 @dataclass(frozen=True)
@@ -103,6 +205,17 @@ class ScheduleDefinition:
 class BackupOptions:
     max_age: str | None = None
     min_age: str | None = None
+    transfers: int | None = None
+    checkers: int | None = None
+    tpslimit: float | None = None
+    tpslimit_burst: int | None = None
+    retries: int | None = None
+    low_level_retries: int | None = None
+    retries_sleep: str | None = None
+    fast_list: bool = False
+    no_traverse: bool = False
+    debug_dump: str | None = None
+    mailru_safe_preset: bool = False
     exclude: list[str] = field(default_factory=list)
     extra_args: list[str] = field(default_factory=list)
 
@@ -110,6 +223,17 @@ class BackupOptions:
         return BackupOptions(
             max_age=(self.max_age or "").strip() or None,
             min_age=(self.min_age or "").strip() or None,
+            transfers=_normalize_optional_int(self.transfers, minimum=1),
+            checkers=_normalize_optional_int(self.checkers, minimum=1),
+            tpslimit=_normalize_optional_float(self.tpslimit, minimum=0.0),
+            tpslimit_burst=_normalize_optional_int(self.tpslimit_burst, minimum=1),
+            retries=_normalize_optional_int(self.retries, minimum=0),
+            low_level_retries=_normalize_optional_int(self.low_level_retries, minimum=0),
+            retries_sleep=_normalize_optional_text(self.retries_sleep),
+            fast_list=bool(self.fast_list),
+            no_traverse=bool(self.no_traverse),
+            debug_dump=_normalize_debug_dump(self.debug_dump),
+            mailru_safe_preset=bool(self.mailru_safe_preset),
             exclude=[str(item).strip() for item in self.exclude if str(item).strip()],
             extra_args=[str(item).strip() for item in self.extra_args if str(item).strip()],
         )
@@ -117,8 +241,14 @@ class BackupOptions:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self.normalized())
 
-    def to_args(self) -> list[str]:
+    def to_args(self, *, transfer_mode: str | None = None) -> list[str]:
         options = self.normalized()
+        transfers = options.transfers if options.transfers is not None else (1 if options.mailru_safe_preset else None)
+        checkers = options.checkers if options.checkers is not None else (1 if options.mailru_safe_preset else None)
+        tpslimit = options.tpslimit if options.tpslimit is not None else (1.0 if options.mailru_safe_preset else None)
+        tpslimit_burst = (
+            options.tpslimit_burst if options.tpslimit_burst is not None else (1 if options.mailru_safe_preset else None)
+        )
         args: list[str] = []
         if options.max_age:
             args.extend(["--max-age", options.max_age])
@@ -126,7 +256,21 @@ class BackupOptions:
             args.extend(["--min-age", options.min_age])
         for pattern in options.exclude:
             args.extend(["--exclude", pattern])
-        args.extend(options.extra_args)
+        _append_singleton_arg(args, "--transfers", transfers)
+        _append_singleton_arg(args, "--checkers", checkers)
+        _append_singleton_arg(args, "--tpslimit", tpslimit)
+        _append_singleton_arg(args, "--tpslimit-burst", tpslimit_burst)
+        _append_singleton_arg(args, "--retries", options.retries)
+        _append_singleton_arg(args, "--low-level-retries", options.low_level_retries)
+        _append_singleton_arg(args, "--retries-sleep", options.retries_sleep)
+        if options.fast_list:
+            args.append("--fast-list")
+        if options.no_traverse and transfer_mode != "sync":
+            args.append("--no-traverse")
+        if options.debug_dump:
+            _append_singleton_arg(args, "--dump", options.debug_dump)
+            _append_singleton_arg(args, "--log-level", "DEBUG")
+        args.extend(_split_extra_args(options.extra_args))
         return args
 
 
@@ -134,6 +278,17 @@ class BackupOptions:
 class RetentionSettings:
     enabled: bool = False
     min_age: str | None = None
+    transfers: int | None = None
+    checkers: int | None = None
+    tpslimit: float | None = None
+    tpslimit_burst: int | None = None
+    retries: int | None = None
+    low_level_retries: int | None = None
+    retries_sleep: str | None = None
+    fast_list: bool = False
+    no_traverse: bool = False
+    debug_dump: str | None = None
+    mailru_safe_preset: bool = False
     exclude: list[str] = field(default_factory=list)
     extra_args: list[str] = field(default_factory=list)
 
@@ -141,6 +296,17 @@ class RetentionSettings:
         return RetentionSettings(
             enabled=bool(self.enabled) and bool((self.min_age or "").strip()),
             min_age=(self.min_age or "").strip() or None,
+            transfers=_normalize_optional_int(self.transfers, minimum=1),
+            checkers=_normalize_optional_int(self.checkers, minimum=1),
+            tpslimit=_normalize_optional_float(self.tpslimit, minimum=0.0),
+            tpslimit_burst=_normalize_optional_int(self.tpslimit_burst, minimum=1),
+            retries=_normalize_optional_int(self.retries, minimum=0),
+            low_level_retries=_normalize_optional_int(self.low_level_retries, minimum=0),
+            retries_sleep=_normalize_optional_text(self.retries_sleep),
+            fast_list=bool(self.fast_list),
+            no_traverse=bool(self.no_traverse),
+            debug_dump=_normalize_debug_dump(self.debug_dump),
+            mailru_safe_preset=bool(self.mailru_safe_preset),
             exclude=[str(item).strip() for item in self.exclude if str(item).strip()],
             extra_args=[str(item).strip() for item in self.extra_args if str(item).strip()],
         )
@@ -150,12 +316,32 @@ class RetentionSettings:
 
     def to_args(self) -> list[str]:
         retention = self.normalized()
+        transfers = retention.transfers if retention.transfers is not None else (1 if retention.mailru_safe_preset else None)
+        checkers = retention.checkers if retention.checkers is not None else (1 if retention.mailru_safe_preset else None)
+        tpslimit = retention.tpslimit if retention.tpslimit is not None else (1.0 if retention.mailru_safe_preset else None)
+        tpslimit_burst = (
+            retention.tpslimit_burst if retention.tpslimit_burst is not None else (1 if retention.mailru_safe_preset else None)
+        )
         args: list[str] = []
         if retention.min_age:
             args.extend(["--min-age", retention.min_age])
         for pattern in retention.exclude:
             args.extend(["--exclude", pattern])
-        args.extend(retention.extra_args)
+        _append_singleton_arg(args, "--transfers", transfers)
+        _append_singleton_arg(args, "--checkers", checkers)
+        _append_singleton_arg(args, "--tpslimit", tpslimit)
+        _append_singleton_arg(args, "--tpslimit-burst", tpslimit_burst)
+        _append_singleton_arg(args, "--retries", retention.retries)
+        _append_singleton_arg(args, "--low-level-retries", retention.low_level_retries)
+        _append_singleton_arg(args, "--retries-sleep", retention.retries_sleep)
+        if retention.fast_list:
+            args.append("--fast-list")
+        if retention.no_traverse:
+            args.append("--no-traverse")
+        if retention.debug_dump:
+            _append_singleton_arg(args, "--dump", retention.debug_dump)
+            _append_singleton_arg(args, "--log-level", "DEBUG")
+        args.extend(_split_extra_args(retention.extra_args))
         return args
 
 
@@ -306,6 +492,7 @@ class CloudSettings:
     notes: str | None = None
     extra_config: dict[str, str] = field(default_factory=dict)
     enabled: bool = True
+    serialize_provider_lock: bool = False
 
     def normalized(self) -> CloudSettings:
         key = str(self.key or "").strip()
@@ -328,6 +515,7 @@ class CloudSettings:
             notes=(self.notes or "").strip() or None,
             extra_config=extra_config,
             enabled=bool(self.enabled),
+            serialize_provider_lock=bool(self.serialize_provider_lock),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -452,10 +640,10 @@ class JobDefinition:
             transfer_mode,
             source_path,
             destination_path,
-            *options.to_args(),
             *DEFAULT_RCLONE_ARGS,
+            *options.to_args(transfer_mode=transfer_mode),
         ]
-        return apply_rclone_bwlimit(command, bandwidth_limit)
+        return apply_rclone_bwlimit(normalize_single_value_flags(command), bandwidth_limit)
 
     @staticmethod
     def build_retention_command(
@@ -468,10 +656,10 @@ class JobDefinition:
             "rclone",
             "delete",
             destination_path,
-            *normalized.to_args(),
             *DEFAULT_RCLONE_ARGS,
+            *normalized.to_args(),
         ]
-        return apply_rclone_bwlimit(command, bandwidth_limit)
+        return apply_rclone_bwlimit(normalize_single_value_flags(command), bandwidth_limit)
 
 
 @dataclass(frozen=True)

@@ -50,6 +50,17 @@ backend/app/jobs/default_jobs.example.json
 
 ---
 
+## 🧩 Runtime Features
+
+- structured `rclone`-опции у backup и retention задач:
+  `transfers`, `checkers`, `tpslimit`, `tpslimit_burst`, `retries`, `low_level_retries`,
+  `retries_sleep`, `fast_list`, `no_traverse`, `debug_dump`, `extra_args`
+- `Mail.ru safe preset` в редакторе backup-задач
+- сериализация запусков для Mail.ru remote на вкладке `Облака`
+- ручное и автоматическое step-логирование `rclone`
+
+---
+
 ## 📖 API Surface
 
 Полное описание вынесено в `docs/04-api-reference.md`. Ниже приведён краткий обзор текущего API без сокращений и устаревших endpoints.

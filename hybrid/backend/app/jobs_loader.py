@@ -122,9 +122,9 @@ def save_catalog(path: Path, catalog: JobCatalog) -> None:
         "bandwidth": catalog.bandwidth.to_dict(),
         "logging": catalog.logging.to_dict(),
         "watcher": catalog.watcher.to_dict(),
-        # Cloud settings are sourced from rclone.conf at runtime and must not be persisted
-        # back into the jobs catalog, otherwise credentials can leak into JSON.
-        "clouds": [],
+        # Persist only safe app-level cloud metadata. Credentials and provider internals
+        # continue to come from rclone.conf at runtime.
+        "clouds": [cloud_to_storage_dict(cloud) for cloud in catalog.raw_clouds()],
         "jobs": jobs,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -176,13 +176,10 @@ def cloud_to_storage_dict(cloud: CloudSettings) -> dict[str, Any]:
         "title": normalized.title,
         "provider": normalized.provider,
         "remote_name": normalized.remote_name,
-        "username": normalized.username,
-        "token": normalized.token,
-        "endpoint": normalized.endpoint,
         "root_path": normalized.root_path,
         "notes": normalized.notes,
-        "extra_config": normalized.extra_config,
         "enabled": normalized.enabled,
+        "serialize_provider_lock": normalized.serialize_provider_lock,
     }
 
 
@@ -390,6 +387,17 @@ def _load_retention(raw: Any) -> RetentionSettings:
     return RetentionSettings(
         enabled=bool(raw.get("enabled", False)),
         min_age=raw.get("min_age"),
+        transfers=raw.get("transfers"),
+        checkers=raw.get("checkers"),
+        tpslimit=raw.get("tpslimit"),
+        tpslimit_burst=raw.get("tpslimit_burst"),
+        retries=raw.get("retries"),
+        low_level_retries=raw.get("low_level_retries"),
+        retries_sleep=raw.get("retries_sleep"),
+        fast_list=bool(raw.get("fast_list", False)),
+        no_traverse=bool(raw.get("no_traverse", False)),
+        debug_dump=raw.get("debug_dump"),
+        mailru_safe_preset=bool(raw.get("mailru_safe_preset", False)),
         exclude=list(raw.get("exclude", [])),
         extra_args=list(raw.get("extra_args", [])),
     ).normalized()
@@ -419,6 +427,7 @@ def _load_clouds(raw: Any) -> list[CloudSettings]:
                 if str(config_key).strip() and str(config_value).strip()
             },
             enabled=bool(item.get("enabled", True)),
+            serialize_provider_lock=bool(item.get("serialize_provider_lock", False)),
         ).normalized()
         if not cloud.key or cloud.key in seen_keys:
             continue
@@ -457,6 +466,17 @@ def _extract_backup_fields(raw: dict[str, Any]) -> tuple[str, str, str, BackupOp
         options = BackupOptions(
             max_age=raw_options.get("max_age"),
             min_age=raw_options.get("min_age"),
+            transfers=raw_options.get("transfers"),
+            checkers=raw_options.get("checkers"),
+            tpslimit=raw_options.get("tpslimit"),
+            tpslimit_burst=raw_options.get("tpslimit_burst"),
+            retries=raw_options.get("retries"),
+            low_level_retries=raw_options.get("low_level_retries"),
+            retries_sleep=raw_options.get("retries_sleep"),
+            fast_list=bool(raw_options.get("fast_list", False)),
+            no_traverse=bool(raw_options.get("no_traverse", False)),
+            debug_dump=raw_options.get("debug_dump"),
+            mailru_safe_preset=bool(raw_options.get("mailru_safe_preset", False)),
             exclude=list(raw_options.get("exclude", [])),
             extra_args=list(raw_options.get("extra_args", [])),
         )
@@ -466,6 +486,16 @@ def _extract_backup_fields(raw: dict[str, Any]) -> tuple[str, str, str, BackupOp
 def _extract_options_from_command(args: list[str]) -> BackupOptions:
     max_age: str | None = None
     min_age: str | None = None
+    transfers: int | None = None
+    checkers: int | None = None
+    tpslimit: float | None = None
+    tpslimit_burst: int | None = None
+    retries: int | None = None
+    low_level_retries: int | None = None
+    retries_sleep: str | None = None
+    debug_dump: str | None = None
+    fast_list = False
+    no_traverse = False
     exclude: list[str] = []
     extra_args: list[str] = []
 
@@ -485,8 +515,49 @@ def _extract_options_from_command(args: list[str]) -> BackupOptions:
             exclude.append(next_value)
             i += 2
             continue
-        if _matches_default_args(args, i):
-            i += len(_DEFAULT_ARGS_SLICE)
+        if current == "--transfers" and next_value is not None:
+            transfers = int(next_value)
+            i += 2
+            continue
+        if current == "--checkers" and next_value is not None:
+            checkers = int(next_value)
+            i += 2
+            continue
+        if current == "--tpslimit" and next_value is not None:
+            tpslimit = float(next_value)
+            i += 2
+            continue
+        if current == "--tpslimit-burst" and next_value is not None:
+            tpslimit_burst = int(next_value)
+            i += 2
+            continue
+        if current == "--retries" and next_value is not None:
+            retries = int(next_value)
+            i += 2
+            continue
+        if current == "--low-level-retries" and next_value is not None:
+            low_level_retries = int(next_value)
+            i += 2
+            continue
+        if current == "--retries-sleep" and next_value is not None:
+            retries_sleep = next_value
+            i += 2
+            continue
+        if current == "--dump" and next_value is not None:
+            debug_dump = next_value
+            i += 2
+            continue
+        if current == "--fast-list":
+            fast_list = True
+            i += 1
+            continue
+        if current == "--no-traverse":
+            no_traverse = True
+            i += 1
+            continue
+        matched_default_args_length = _matched_default_args_length(args, i)
+        if matched_default_args_length:
+            i += matched_default_args_length
             continue
         extra_args.append(current)
         if next_value is not None and not next_value.startswith("--"):
@@ -495,10 +566,25 @@ def _extract_options_from_command(args: list[str]) -> BackupOptions:
             continue
         i += 1
 
-    return BackupOptions(max_age=max_age, min_age=min_age, exclude=exclude, extra_args=extra_args)
+    return BackupOptions(
+        max_age=max_age,
+        min_age=min_age,
+        transfers=transfers,
+        checkers=checkers,
+        tpslimit=tpslimit,
+        tpslimit_burst=tpslimit_burst,
+        retries=retries,
+        low_level_retries=low_level_retries,
+        retries_sleep=retries_sleep,
+        fast_list=fast_list,
+        no_traverse=no_traverse,
+        debug_dump=debug_dump,
+        exclude=exclude,
+        extra_args=extra_args,
+    )
 
 
-_DEFAULT_ARGS_SLICE = [
+_LEGACY_DEFAULT_ARGS_SLICE = [
     "--contimeout",
     "30s",
     "--timeout",
@@ -523,9 +609,12 @@ _DEFAULT_ARGS_SLICE = [
 ]
 
 
-def _matches_default_args(args: list[str], start: int) -> bool:
-    end = start + len(_DEFAULT_ARGS_SLICE)
-    return args[start:end] == _DEFAULT_ARGS_SLICE
+def _matched_default_args_length(args: list[str], start: int) -> int:
+    for candidate in (DEFAULT_RCLONE_ARGS, _LEGACY_DEFAULT_ARGS_SLICE):
+        end = start + len(candidate)
+        if args[start:end] == candidate:
+            return len(candidate)
+    return 0
 
 
 def _migrate_retention_commands(jobs: list[JobDefinition]) -> tuple[list[JobDefinition], bool]:

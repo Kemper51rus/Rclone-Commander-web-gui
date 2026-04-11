@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
@@ -19,6 +20,7 @@ from .domain import (
     path_is_within,
 )
 from .gotify import GotifyClient
+from .locks import file_lock
 from .runner import CommandRunner
 from .storage import Storage
 
@@ -460,30 +462,38 @@ class Orchestrator:
                 else:
                     if not self._wait_for_copy_start_slot(run_id=run_id, step_id=step_id, step=step):
                         return
-            if not run_started:
-                self.storage.mark_run_running(run_id)
-                run_started = True
-            self.storage.mark_step_running(step_id)
-            log_mode = self._step_rclone_log_mode(str(step.get("job_key") or ""))
-            self.storage.set_step_log_mode(step_id, log_mode)
+            try:
+                with self._step_execution_context(run_id=run_id, step=step):
+                    current_run = self.storage.get_run(run_id)
+                    if not current_run:
+                        return
+                    if str(current_run.get("status") or "") not in {"queued", "running"}:
+                        return
+                    if not run_started:
+                        self.storage.mark_run_running(run_id)
+                        run_started = True
+                    self.storage.mark_step_running(step_id)
+                    log_mode = self._step_rclone_log_mode(step)
+                    self.storage.set_step_log_mode(step_id, log_mode)
 
-            command = self._bind_step_rclone_log(
-                command=list(step.get("command", [])),
-                run_id=run_id,
-                step_id=step_id,
-                job_key=str(step.get("job_key") or ""),
-                log_mode=log_mode,
-            )
-            timeout_seconds = int(step.get("timeout_seconds") or self.settings.default_timeout_seconds)
-            result = self.runner.run(
-                command=command,
-                timeout_seconds=timeout_seconds,
-                on_progress=lambda progress, current_step_id=step_id: self.storage.update_step_progress(
-                    current_step_id,
-                    progress,
-                ),
-                control_id=step_id,
-            )
+                    command = self._bind_step_rclone_log(
+                        command=list(step.get("command", [])),
+                        run_id=run_id,
+                        step_id=step_id,
+                        log_mode=log_mode,
+                    )
+                    timeout_seconds = int(step.get("timeout_seconds") or self.settings.default_timeout_seconds)
+                    result = self.runner.run(
+                        command=command,
+                        timeout_seconds=timeout_seconds,
+                        on_progress=lambda progress, current_step_id=step_id: self.storage.update_step_progress(
+                            current_step_id,
+                            progress,
+                        ),
+                        control_id=step_id,
+                    )
+            except InterruptedError:
+                return
 
             self.storage.mark_step_finished(
                 step_id=step_id,
@@ -627,12 +637,11 @@ class Orchestrator:
         command: list[str],
         run_id: int,
         step_id: int,
-        job_key: str | None = None,
         log_mode: str | None = None,
     ) -> list[str]:
         if not command or command[0] != "rclone":
             return command
-        effective_log_mode = log_mode if log_mode is not None else self._step_rclone_log_mode(job_key)
+        effective_log_mode = log_mode
         if effective_log_mode is None:
             updated = []
             skip_next = False
@@ -766,18 +775,73 @@ class Orchestrator:
             return None
         return amount * factor
 
-    def _step_rclone_log_enabled(self, job_key: str | None) -> bool:
-        return self._step_rclone_log_mode(job_key) is not None
-
-    def _step_rclone_log_mode(self, job_key: str | None) -> str | None:
+    def _step_rclone_log_mode(self, step: dict[str, Any]) -> str | None:
         if self.catalog.logging.rclone_log_enabled:
             return "global"
+        step_options = self._step_options(step)
+        if step_options and getattr(step_options, "debug_dump", None):
+            return "debug"
         if not self.catalog.logging.auto_rclone_log_enabled:
             return None
-        normalized_key = str(job_key or "").strip()
+        normalized_key = str(step.get("job_key") or "").strip()
         if not normalized_key:
             return None
         return "auto" if self._job_auto_rclone_log_enabled(normalized_key) else None
+
+    def _step_options(self, step: dict[str, Any]) -> Any | None:
+        job_key = str(step.get("job_key") or "").strip()
+        if not job_key:
+            return None
+        job = self.catalog.get_job(job_key)
+        if not job or job.kind != "backup":
+            return None
+        if step.get("step_kind") == "retention":
+            return job.retention.normalized()
+        return job.options.normalized()
+
+    def _step_cloud(self, step: dict[str, Any]) -> Any | None:
+        job_key = str(step.get("job_key") or "").strip()
+        if not job_key:
+            return None
+        job = self.catalog.get_job(job_key)
+        if not job or job.kind != "backup":
+            return None
+        if job.cloud_key:
+            cloud = self.catalog.get_cloud(job.cloud_key)
+            if cloud:
+                return cloud
+        destination_path = str(job.destination_path or "").strip()
+        remote_name = destination_path.split(":", 1)[0].strip() if ":" in destination_path else ""
+        if not remote_name:
+            return None
+        for cloud in self.catalog.raw_clouds():
+            if str(cloud.remote_name or "").strip() == remote_name:
+                return cloud
+        return None
+
+    def _step_provider_lock_path(self, step: dict[str, Any]) -> Path | None:
+        cloud = self._step_cloud(step)
+        if not cloud:
+            return None
+        provider = str(getattr(cloud, "provider", "") or "").strip().lower()
+        if provider != "mailru" or not bool(getattr(cloud, "serialize_provider_lock", False)):
+            return None
+        return self.settings.app_root / "data" / "locks" / f"{provider}.lock"
+
+    def _run_wait_aborted(self, run_id: int) -> bool:
+        if self._stop_event.is_set():
+            return True
+        run = self.storage.get_run(run_id)
+        return not run or str(run.get("status") or "") not in {"queued", "running"}
+
+    def _step_execution_context(self, run_id: int, step: dict[str, Any]) -> Any:
+        lock_path = self._step_provider_lock_path(step)
+        if lock_path is None:
+            return nullcontext()
+        return file_lock(
+            lock_path,
+            should_abort=lambda: self._run_wait_aborted(run_id),
+        )
 
     def _update_job_auto_rclone_log_state(self, step: dict[str, Any], status: str) -> None:
         if step.get("step_kind") != "job":

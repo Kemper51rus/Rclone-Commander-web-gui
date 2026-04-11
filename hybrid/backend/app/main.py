@@ -193,6 +193,17 @@ class SchedulePayload(BaseModel):
 class BackupOptionsPayload(BaseModel):
     max_age: str | None = None
     min_age: str | None = None
+    transfers: int | None = Field(default=None, ge=1)
+    checkers: int | None = Field(default=None, ge=1)
+    tpslimit: float | None = Field(default=None, ge=0)
+    tpslimit_burst: int | None = Field(default=None, ge=1)
+    retries: int | None = Field(default=None, ge=0)
+    low_level_retries: int | None = Field(default=None, ge=0)
+    retries_sleep: str | None = None
+    fast_list: bool = False
+    no_traverse: bool = False
+    debug_dump: str | None = None
+    mailru_safe_preset: bool = False
     exclude: list[str] = Field(default_factory=list)
     extra_args: list[str] = Field(default_factory=list)
 
@@ -207,6 +218,17 @@ class JobNotificationPayload(BaseModel):
 class RetentionPayload(BaseModel):
     enabled: bool = False
     min_age: str | None = None
+    transfers: int | None = Field(default=None, ge=1)
+    checkers: int | None = Field(default=None, ge=1)
+    tpslimit: float | None = Field(default=None, ge=0)
+    tpslimit_burst: int | None = Field(default=None, ge=1)
+    retries: int | None = Field(default=None, ge=0)
+    low_level_retries: int | None = Field(default=None, ge=0)
+    retries_sleep: str | None = None
+    fast_list: bool = False
+    no_traverse: bool = False
+    debug_dump: str | None = None
+    mailru_safe_preset: bool = False
     exclude: list[str] = Field(default_factory=list)
     extra_args: list[str] = Field(default_factory=list)
 
@@ -293,6 +315,10 @@ class LoggingPayload(BaseModel):
     rclone_log_enabled: bool = False
     auto_rclone_log_enabled: bool = False
     auto_rclone_log_threshold: int = Field(default=3, ge=1, le=100)
+
+
+class CloudLockPayload(BaseModel):
+    serialize_provider_lock: bool = False
 
 
 class WatcherPayload(BaseModel):
@@ -403,6 +429,7 @@ def _import_clouds_from_rclone_config(
             notes=notes,
             extra_config=(extra_config or (existing.extra_config if existing else {})),
             enabled=existing.enabled if existing else True,
+            serialize_provider_lock=existing.serialize_provider_lock if existing else False,
         ).normalized()
         key_by_remote[remote_name] = key
 
@@ -655,6 +682,62 @@ def clear_rclone_log_file(step_id: int) -> dict[str, Any]:
 def get_cloud_settings() -> dict[str, Any]:
     clouds = _refresh_catalog_clouds_from_rclone()
     return {"clouds": [cloud.to_dict() for cloud in clouds]}
+
+
+@app.put("/api/clouds/{cloud_key}/lock", dependencies=[Depends(require_write_access)])
+def update_cloud_lock_settings(cloud_key: str, payload: CloudLockPayload) -> dict[str, Any]:
+    clouds = _refresh_catalog_clouds_from_rclone()
+    current = next((cloud for cloud in clouds if cloud.key == cloud_key), None)
+    if current is None:
+        raise HTTPException(status_code=404, detail="cloud not found")
+
+    updated_cloud = CloudSettings(
+        key=current.key,
+        title=current.title,
+        provider=current.provider,
+        remote_name=current.remote_name,
+        username=current.username,
+        token=current.token,
+        endpoint=current.endpoint,
+        root_path=current.root_path,
+        notes=current.notes,
+        extra_config=current.extra_config,
+        enabled=current.enabled,
+        serialize_provider_lock=payload.serialize_provider_lock,
+    ).normalized()
+    updated_clouds = [
+        updated_cloud if cloud.key == cloud_key else cloud
+        for cloud in clouds
+    ]
+
+    with catalog_lock:
+        updated_catalog = JobCatalog(
+            jobs=catalog.raw_jobs(),
+            profiles=build_profiles(catalog.raw_jobs(), queue_keys=catalog.queues.queue_keys()),
+            gotify=catalog.gotify,
+            queues=catalog.queues,
+            bandwidth=catalog.bandwidth,
+            logging=catalog.logging,
+            watcher=catalog.watcher,
+            clouds=updated_clouds,
+        )
+        save_catalog(settings.jobs_file, updated_catalog)
+        catalog.replace(
+            updated_catalog.raw_jobs(),
+            updated_catalog.profiles,
+            gotify=updated_catalog.gotify,
+            queues=updated_catalog.queues,
+            bandwidth=updated_catalog.bandwidth,
+            logging=updated_catalog.logging,
+            watcher=updated_catalog.watcher,
+            clouds=updated_catalog.raw_clouds(),
+        )
+
+    return {
+        "saved": True,
+        "cloud": updated_cloud.to_dict(),
+        "clouds": catalog.list_clouds(),
+    }
 
 
 @app.put("/api/gotify", dependencies=[Depends(require_write_access)])

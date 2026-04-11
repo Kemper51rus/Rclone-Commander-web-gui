@@ -212,6 +212,10 @@ systemctl restart rclone-hybrid-web.service
 
 - состав и порядок задач
 - режим передачи: `copy` или `sync`
+- structured `rclone`-опции для backup/retention:
+  `transfers`, `checkers`, `tpslimit`, `tpslimit_burst`, `retries`, `low_level_retries`,
+  `retries_sleep`, `fast_list`, `no_traverse`, `debug_dump`, `extra_args`
+- `Mail.ru safe preset` для бережного режима `rclone`
 - расписание
 - таймауты
 - retention-политику
@@ -219,8 +223,10 @@ systemctl restart rclone-hybrid-web.service
 - параметры очередей
 - глобальный лимит скорости
 - включение подробного `rclone`-лога
+- автоматическое включение `rclone`-логов по порогу ошибок
 - глобальное включение watcher и debounce
 - включение watcher у отдельных backup-задач
+- сериализацию запусков для Mail.ru remote на вкладке `Облака`
 
 ### Поведение при первом запуске
 

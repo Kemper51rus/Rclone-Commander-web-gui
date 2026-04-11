@@ -64,11 +64,12 @@
 
 ## ☁️ Clouds
 
-Cloud settings в текущей версии считаются read-only и берутся из `rclone.conf`.
+Cloud settings читаются из `rclone.conf`, но приложение сохраняет безопасные app-метаданные для remotes отдельно.
 
 | Method | Endpoint | Назначение |
 | --- | --- | --- |
 | `GET` | `/api/clouds` | Получить список облаков, считанных из `rclone.conf` |
+| `PUT` | `/api/clouds/{cloud_key}/lock` | Включить или выключить сериализацию запусков для конкретного Mail.ru remote |
 | `PUT` | `/api/clouds` | Существует, но возвращает `403` |
 | `POST` | `/api/clouds/import-rclone` | Существует, но возвращает `403` |
 | `POST` | `/api/clouds/import-rclone-remote` | Существует, но возвращает `403` |
@@ -146,6 +147,9 @@ Cloud settings в текущей версии считаются read-only и б
 - `PUT /api/jobs` принимает и `backup`, и `command`
 - обе операции пересобирают профили на основе актуальных очередей
 - если задача ссылается на несуществующую очередь, API возвращает `400`
+- `backup.options` и `retention` поддерживают structured `rclone`-поля:
+  `transfers`, `checkers`, `tpslimit`, `tpslimit_burst`, `retries`, `low_level_retries`,
+  `retries_sleep`, `fast_list`, `no_traverse`, `debug_dump`, `mailru_safe_preset`, `exclude`, `extra_args`
 
 ---
 

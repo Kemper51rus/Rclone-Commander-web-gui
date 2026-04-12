@@ -1,5 +1,9 @@
 # 🚀 Rclone Commander Web GUI
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/hybrid/backend/app/rclone-commander-logo.svg" alt="Rclone Commander Web GUI" width="260">
+</p>
+
 Веб-панель для управления backup-задачами на базе `rclone`.
 
 `Rclone Commander Web GUI` собирает запуск задач, расписание, очереди, историю и интерфейс управления в одном приложении. Сам перенос данных по-прежнему выполняет `rclone`, а приложение отвечает за координацию, хранение состояния и работу API.
@@ -8,21 +12,10 @@
 
 ## Быстрая установка
 
-Единый installer: [`scripts/install.sh`](https://github.com/Kemper51rus/Rclone-Commander-web-gui/blob/main/scripts/install.sh).
-
 Запуск напрямую из GitHub:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/scripts/install.sh -o /tmp/rclone-commander-install.sh
-sudo bash /tmp/rclone-commander-install.sh
-```
-
-Или после клонирования репозитория:
-
-```bash
-git clone https://github.com/Kemper51rus/Rclone-Commander-web-gui.git
-cd Rclone-Commander-web-gui
-sudo ./scripts/install.sh
+bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/scripts/install.sh)
 ```
 
 ---

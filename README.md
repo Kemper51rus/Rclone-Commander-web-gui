@@ -1,12 +1,12 @@
-# 🚀 Rclone taskboard (web gui)
+# 🚀 Rclone taskboard
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-web-gui/main/taskboard/backend/app/rclone-taskboard-logo.svg" alt="Rclone taskboard (web gui)" width="260">
+  <img src="https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-web-gui/main/taskboard/backend/app/rclone-taskboard-logo.svg" alt="Rclone taskboard" width="260">
 </p>
 
 Веб-панель для управления backup-задачами на базе `rclone`.
 
-`Rclone taskboard (web gui)` собирает запуск задач, расписание, очереди, историю и интерфейс управления в одном приложении. Сам перенос данных по-прежнему выполняет `rclone`, а приложение отвечает за координацию, хранение состояния и работу API.
+`Rclone taskboard` собирает запуск задач, расписание, очереди, историю и интерфейс управления в одном приложении. Сам перенос данных по-прежнему выполняет `rclone`, а приложение отвечает за координацию, хранение состояния и работу API.
 
 ---
 
@@ -91,7 +91,6 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-w
 │   ├── .env.docker.example
 │   ├── .env.systemd.example
 │   └── docker-compose.yml
-├── legacy/
 ├── systemd/
 └── README.md
 ```
@@ -104,7 +103,6 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-w
 | `taskboard/backend/app/jobs/default_jobs.example.json` | Шаблон каталога задач |
 | `taskboard/backend/app/jobs/default_jobs.json` | Рабочий каталог задач, создаётся при первом запуске |
 | `taskboard/docker-compose.yml` | Docker-стек |
-| `legacy/` | Отдельные материалы и скрипты для старого окружения |
 | `systemd/` | Unit-файлы для запуска на хосте |
 
 ---
@@ -342,6 +340,6 @@ sudo ./install.sh
 - `docs/04-api-reference.md` — полное описание API
 - `docs/06-taskboard-mvp.md` — структура каталога и настройки
 - `docs/07-deployment.md` — развертывание
+- `docs/09-legacy-migration.md` — материалы по старому окружению и миграции
 - `taskboard/README.md` — заметки по каталогу `taskboard/`
-- `legacy/README.md` — отдельные материалы по старому окружению и миграции
 - `Security.md` — локальные заметки по безопасности, файл игнорируется Git

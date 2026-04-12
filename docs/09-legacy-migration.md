@@ -1,27 +1,27 @@
-# 🔄 Legacy Migration
+# 🔄 Переход с legacy-окружения
 
-Этот документ описывает переход со старой связки shell-скриптов и systemd на текущий taskboard runtime приложения.
+Этот документ описывает переход со старой связки shell-скриптов и systemd на текущий runtime `Rclone taskboard`.
 
 ---
 
-## 🧱 Legacy Components
+## 🧱 Старые компоненты
 
 Legacy stack обычно включал:
 
 - `rclone-backup.service`
 - `rclone-backup.timer`
 - `rclone-watch.service`
-- shell scripts в `/usr/local/bin`
+- shell-скрипты в `/usr/local/bin`
 
 ---
 
-## 🛠️ Migration Command
+## 🛠️ Команда миграции
 
 ```bash
 sudo ./install.sh migrate-legacy
 ```
 
-### Полная установка с migration
+### Полная установка с миграцией
 
 Для установки/обновления и migration в одном процессе запустите:
 
@@ -54,7 +54,7 @@ sudo ./install.sh
 
 ---
 
-## 🧪 Examples
+## 🧪 Примеры
 
 ### Миграция в Systemd
 
@@ -70,7 +70,7 @@ sudo ./install.sh
 
 ---
 
-## ✅ Validation Checklist
+## ✅ Проверка после миграции
 
 После миграции проверьте:
 
@@ -78,4 +78,4 @@ sudo ./install.sh
 - `GET /api/health` возвращает успешный ответ
 - `GET /api/state` показывает живые scheduler и workers
 - `default_jobs.json` создан при необходимости
-- ручной запуск job-а или профиля проходит успешно
+- ручной запуск задачи или профиля проходит успешно

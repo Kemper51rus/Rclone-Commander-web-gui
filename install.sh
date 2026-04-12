@@ -7,7 +7,7 @@ TARGET_ROOT="${TARGET_ROOT:-/opt/rclone-taskboard}"
 SOURCE_ROOT="${SOURCE_ROOT:-}"
 SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-SERVICE_NAME="${SERVICE_NAME:-rclone-taskboard-web.service}"
+SERVICE_NAME="${SERVICE_NAME:-rclone-taskboard.service}"
 SOURCE_CHECKOUT_DEFAULT="${SOURCE_CHECKOUT_DEFAULT:-/opt/rclone-taskboard-src}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -232,7 +232,8 @@ copy_runtime_bundle() {
   rm -f \
     "$target_root/scripts/install-taskboard-systemd.sh" \
     "$target_root/scripts/install-taskboard-docker.sh" \
-    "$target_root/scripts/migrate-embedded-watcher-systemd.sh"
+    "$target_root/scripts/migrate-embedded-watcher-systemd.sh" \
+    "$target_root/systemd/${SERVICE_NAME%.service}-web.service"
   rmdir "$target_root/scripts" 2>/dev/null || true
   if [[ -f "$source_root/taskboard/backend/Dockerfile" ]]; then
     install -m 0644 "$source_root/taskboard/backend/Dockerfile" "$target_root/taskboard/backend/Dockerfile"
@@ -264,8 +265,23 @@ install_systemd_unit() {
   local escaped_target
   escaped_target="$(escape_sed_replacement "$target_root")"
   sed "s|/opt/rclone-taskboard|$escaped_target|g" \
-    "$source_root/systemd/rclone-taskboard-web.service" > "$target_root/systemd/rclone-taskboard-web.service"
-  install -m 0644 "$target_root/systemd/rclone-taskboard-web.service" "$SYSTEMD_DIR/$SERVICE_NAME"
+    "$source_root/systemd/rclone-taskboard.service" > "$target_root/systemd/rclone-taskboard.service"
+  install -m 0644 "$target_root/systemd/rclone-taskboard.service" "$SYSTEMD_DIR/$SERVICE_NAME"
+  systemctl daemon-reload
+}
+
+remove_obsolete_taskboard_units() {
+  local old_service
+  for old_service in "${SERVICE_NAME%.service}-web.service"; do
+    [[ "$old_service" == "$SERVICE_NAME" ]] && continue
+    if systemctl is-active --quiet "$old_service" 2>/dev/null; then
+      systemctl stop "$old_service" || true
+    fi
+    if systemctl is-enabled --quiet "$old_service" 2>/dev/null; then
+      systemctl disable "$old_service" || true
+    fi
+    rm -f "$SYSTEMD_DIR/$old_service"
+  done
   systemctl daemon-reload
 }
 
@@ -301,6 +317,7 @@ install_or_update_systemd() {
   "$TARGET_ROOT/taskboard/.venv/bin/pip" install -r "$TARGET_ROOT/taskboard/backend/requirements.txt"
 
   install_systemd_unit "$SOURCE_ROOT" "$TARGET_ROOT"
+  remove_obsolete_taskboard_units
   remove_obsolete_embedded_watcher_unit
   systemctl enable "$SERVICE_NAME"
   systemctl restart "$SERVICE_NAME"

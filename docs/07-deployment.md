@@ -122,7 +122,7 @@ sudo ./install.sh systemd
 ### Включение сервисов
 
 ```bash
-systemctl status rclone-taskboard-web.service --no-pager
+systemctl status rclone-taskboard.service --no-pager
 ```
 
 ### Переход со старого external watcher
@@ -133,7 +133,7 @@ systemctl status rclone-taskboard-web.service --no-pager
 sudo ./install.sh migrate-legacy
 ```
 
-Скрипт делает backup, останавливает и отключает старые unit'ы, удаляет устаревшие legacy-скрипты и unit'ы и оставляет только встроенный watcher внутри `rclone-taskboard-web.service`.
+Скрипт делает backup, останавливает и отключает старые unit'ы, удаляет устаревшие legacy-скрипты и unit'ы и оставляет только встроенный watcher внутри `rclone-taskboard.service`.
 
 ---
 

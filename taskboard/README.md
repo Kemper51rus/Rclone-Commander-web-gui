@@ -71,4 +71,4 @@ backend/app/jobs/default_jobs.example.json
 
 - [Руководство по развертыванию](/root/projects/rclone-web-ui/rclone/docs/07-deployment.md)
 - [Служебные заметки для разработки](/root/projects/rclone-web-ui/rclone/docs/08-development-notes.md)
-- [Архивные материалы по legacy](/root/projects/rclone-web-ui/rclone/legacy/README.md)
+- [Архивные материалы по legacy](/root/projects/rclone-web-ui/rclone/docs/09-legacy-migration.md)

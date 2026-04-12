@@ -1,5 +1,3 @@
-# 🚀 Rclone taskboard
-
 <p align="center">
   <img src="https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-web-gui/main/docs/readme-wordmark.svg" alt="Rclone taskboard" width="620">
 </p>
@@ -11,8 +9,6 @@
 ---
 
 ## Быстрая установка
-
-Запуск напрямую из GitHub:
 
 ```bash
 bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-web-gui/main/install.sh)

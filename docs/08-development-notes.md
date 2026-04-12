@@ -23,7 +23,7 @@
 
 Где сейчас используется:
 
-- status widgets в `hybrid/backend/app/dashboard.html`
+- status widgets в `taskboard/backend/app/dashboard.html`
 
 Примечание для разработки:
 

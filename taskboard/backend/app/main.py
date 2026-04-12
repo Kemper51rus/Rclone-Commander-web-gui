@@ -62,7 +62,7 @@ event_watcher = FilesystemWatcher(
     on_event=orchestrator.enqueue_event,
 )
 DASHBOARD_HTML = Path(__file__).with_name("dashboard.html").read_text(encoding="utf-8")
-APP_LOGO_PATH = Path(__file__).with_name("rclone-commander-logo.svg")
+APP_LOGO_PATH = Path(__file__).with_name("rclone-taskboard-logo.svg")
 FS_ROOTS = ["/media", "/srv", "/home", "/root", "/mnt", "/tmp"]
 RUN_HISTORY_RETENTION_DAYS = 365
 RUN_HISTORY_LAST_PRUNED_AT_STATE_KEY = "run_history_last_pruned_at"
@@ -1062,7 +1062,7 @@ def test_gotify_settings(payload: GotifyPayload) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail="gotify is not fully configured")
     sent = gotify.send(
         gotify_settings,
-        title="Rclone Hybrid Test",
+        title="Rclone taskboard Test",
         message=(
             f"Тестовое уведомление из {settings.app_name}\n"
             f"time={datetime.now(timezone.utc).isoformat()}"

@@ -1,6 +1,6 @@
 # 📘 Обзор проекта
 
-`Rclone Commander Web GUI` это веб-слой управления для backup-процессов на базе `rclone`. Проект убирает связку shell-скриптов и systemd-юнитов из повседневной работы и переносит запуск задач, очереди, расписание и историю в одно приложение с API и dashboard.
+`Rclone taskboard (web gui)` это веб-слой управления для backup-процессов на базе `rclone`. Проект убирает связку shell-скриптов и systemd-юнитов из повседневной работы и переносит запуск задач, очереди, расписание и историю в одно приложение с API и dashboard.
 
 ---
 
@@ -41,12 +41,11 @@
 
 | Путь | Назначение |
 | --- | --- |
-| `hybrid/backend/app/` | Исходный код backend |
-| `hybrid/backend/app/jobs/default_jobs.example.json` | Шаблон каталога задач |
-| `hybrid/backend/app/jobs/default_jobs.json` | Рабочий каталог задач |
-| `hybrid/docker-compose.yml` | Развертывание через Docker |
+| `taskboard/backend/app/` | Исходный код backend |
+| `taskboard/backend/app/jobs/default_jobs.example.json` | Шаблон каталога задач |
+| `taskboard/backend/app/jobs/default_jobs.json` | Рабочий каталог задач |
+| `taskboard/docker-compose.yml` | Развертывание через Docker |
 | `systemd/` | Unit-файлы для запуска на хосте |
-| `scripts/` | Скрипты установки и миграции |
 
 ---
 
@@ -64,10 +63,10 @@
 
 Основной рабочий файл:
 
-`hybrid/backend/app/jobs/default_jobs.json`
+`taskboard/backend/app/jobs/default_jobs.json`
 
 Он создаётся из шаблона:
 
-`hybrid/backend/app/jobs/default_jobs.example.json`
+`taskboard/backend/app/jobs/default_jobs.example.json`
 
 Шаблон хранится в Git, а рабочий файл создаётся уже в установленной системе.

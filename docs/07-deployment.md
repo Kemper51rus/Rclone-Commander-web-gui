@@ -11,7 +11,7 @@
 
 В Docker-режиме запускается один сервис:
 
-- `hybrid-web`
+- `taskboard-web`
 
 ### Требования
 
@@ -24,15 +24,15 @@
 ### Подготовка
 
 ```bash
-cd hybrid
+cd taskboard
 cp .env.docker.example .env.docker
 ```
 
 Проверьте:
 
-- `HYBRID_RCLONE_CONFIG`
+- `TASKBOARD_RCLONE_CONFIG`
 - `APP_TIMEZONE`
-- `HYBRID_API_TOKEN`
+- `TASKBOARD_API_TOKEN`
 
 ### Запуск
 
@@ -43,7 +43,7 @@ docker compose --env-file .env.docker up -d --build
 ### Installer Script
 
 ```bash
-sudo ./scripts/install.sh docker
+sudo ./install.sh docker
 ```
 
 ---
@@ -57,7 +57,7 @@ sudo ./scripts/install.sh docker
 Основной способ установки и обслуживания:
 
 ```bash
-sudo ./scripts/install.sh
+sudo ./install.sh
 ```
 
 Скрипт работает как интерактивное меню и умеет:
@@ -66,8 +66,8 @@ sudo ./scripts/install.sh
 - поставить или обновить deployment через `docker`
 - подтянуть исходники из Git перед установкой
 - проверить зависимости и предложить доустановить недостающие
-- выполнить переход с legacy: сделать backup, остановить и удалить старые scripts/unit'ы
-- удалить hybrid-установку при повторном запуске
+- выполнить переход с legacy: сделать backup, остановить и удалить старые legacy-скрипты и unit'ы
+- удалить taskboard-установку при повторном запуске
 
 Legacy-cleanup покрывает старые файлы:
 
@@ -84,10 +84,10 @@ Legacy-cleanup покрывает старые файлы:
 Для неинтерактивного запуска доступны команды:
 
 ```bash
-sudo ./scripts/install.sh systemd
-sudo ./scripts/install.sh docker
-sudo ./scripts/install.sh migrate-legacy
-sudo ./scripts/install.sh uninstall
+sudo ./install.sh systemd
+sudo ./install.sh docker
+sudo ./install.sh migrate-legacy
+sudo ./install.sh uninstall
 ```
 
 ### Требования
@@ -101,39 +101,39 @@ sudo ./scripts/install.sh uninstall
 ### Подготовка
 
 ```bash
-cp hybrid/.env.systemd.example hybrid/.env
+cp taskboard/.env.systemd.example taskboard/.env
 ```
 
 Проверьте:
 
-- `HYBRID_DB_PATH`
-- `HYBRID_JOBS_FILE`
-- `HYBRID_RCLONE_CONFIG`
-- `HYBRID_WATCHER_DEBOUNCE_SECONDS`
-- `HYBRID_COPY_STARTUP_DELAY_SECONDS`
-- `HYBRID_COPY_MIN_START_INTERVAL_SECONDS`
+- `TASKBOARD_DB_PATH`
+- `TASKBOARD_JOBS_FILE`
+- `TASKBOARD_RCLONE_CONFIG`
+- `TASKBOARD_WATCHER_DEBOUNCE_SECONDS`
+- `TASKBOARD_COPY_STARTUP_DELAY_SECONDS`
+- `TASKBOARD_COPY_MIN_START_INTERVAL_SECONDS`
 
 ### Установка
 
 ```bash
-sudo ./scripts/install.sh systemd
+sudo ./install.sh systemd
 ```
 
 ### Включение сервисов
 
 ```bash
-systemctl status rclone-hybrid-web.service --no-pager
+systemctl status rclone-taskboard-web.service --no-pager
 ```
 
 ### Переход со старого external watcher
 
-Если на хосте раньше был legacy pipeline или отдельный `rclone-watch-hybrid.service`, выполните migration через единый installer:
+Если на хосте раньше был legacy pipeline или отдельный watcher-service, выполните migration через единый installer:
 
 ```bash
-sudo ./scripts/install.sh migrate-legacy
+sudo ./install.sh migrate-legacy
 ```
 
-Скрипт делает backup, останавливает и отключает старые unit'ы, удаляет устаревшие scripts/unit'ы и оставляет только встроенный watcher внутри `rclone-hybrid-web.service`.
+Скрипт делает backup, останавливает и отключает старые unit'ы, удаляет устаревшие legacy-скрипты и unit'ы и оставляет только встроенный watcher внутри `rclone-taskboard-web.service`.
 
 ---
 

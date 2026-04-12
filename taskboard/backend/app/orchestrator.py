@@ -77,7 +77,7 @@ class Orchestrator:
         if self.settings.enable_scheduler:
             self._scheduler_thread = threading.Thread(
                 target=self._scheduler_loop,
-                name="hybrid-scheduler",
+                name="taskboard-scheduler",
                 daemon=True,
             )
             self._scheduler_thread.start()
@@ -116,7 +116,7 @@ class Orchestrator:
                     thread = threading.Thread(
                         target=self._worker_loop,
                         args=(queue_name, self._run_queues[queue_name]),
-                        name=f"hybrid-worker-{queue_name}-{worker_index}",
+                        name=f"taskboard-worker-{queue_name}-{worker_index}",
                         daemon=True,
                     )
                     current.append(thread)

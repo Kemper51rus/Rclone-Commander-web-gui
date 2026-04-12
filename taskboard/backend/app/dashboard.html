@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rclone командер</title>
+  <title>Rclone taskboard</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <style>
     :root {
@@ -1468,8 +1468,8 @@
     <section class="hero">
       <div class="hero-top">
         <div class="hero-logo">
-          <img class="hero-logo-mark" src="/favicon.svg" alt="Rclone командер" />
-          <span class="hero-logo-text">Rclone командер</span>
+          <img class="hero-logo-mark" src="/favicon.svg" alt="Rclone taskboard" />
+          <span class="hero-logo-text">Rclone taskboard</span>
         </div>
         <p class="hero-message" id="messagePanel" role="status" aria-live="polite"></p>
       </div>
@@ -2094,7 +2094,7 @@
       }
     }
 
-    const SHOW_LOG_FILTERS_STORAGE_KEY = "rcloneHybrid.showLogFilters";
+    const SHOW_LOG_FILTERS_STORAGE_KEY = "rcloneTaskboard.showLogFilters";
 
     const state = {
       jobs: [],
@@ -2674,9 +2674,9 @@
       const rightSlot = document.getElementById("historySlotRight");
       if (!jobsPanel || !runsPanel || !rightSlot) return;
 
-      const isDesktopLayout = window.innerWidth > 1100;
+      const isWideLayout = window.innerWidth > 1100;
       const isRightAligned = runsPanel.parentElement === rightSlot;
-      if (!isDesktopLayout || !isRightAligned) {
+      if (!isWideLayout || !isRightAligned) {
         runsPanel.style.height = "";
         runsPanel.dataset.constrained = "false";
         return;
@@ -2698,9 +2698,9 @@
       const loggingPanel = document.getElementById("loggingPanel");
       if (!jobsPanel || !loggingPanel) return;
 
-      const isDesktopLayout = window.innerWidth > 1100;
+      const isWideLayout = window.innerWidth > 1100;
       const isVisible = state.showLogging && !loggingPanel.hidden;
-      const shouldConstrain = isDesktopLayout && isVisible && !state.showLogFilters;
+      const shouldConstrain = isWideLayout && isVisible && !state.showLogFilters;
       if (!shouldConstrain) {
         loggingPanel.style.height = "";
         loggingPanel.dataset.constrained = "false";

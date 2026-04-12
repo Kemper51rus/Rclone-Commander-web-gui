@@ -1,6 +1,6 @@
-# 📦 Hybrid Runtime
+# 📦 Taskboard Runtime
 
-Каталог `hybrid/` содержит приложение, шаблоны окружения и файлы для развертывания.
+Каталог `taskboard/` содержит приложение, шаблоны окружения и файлы для развертывания.
 
 ---
 
@@ -36,17 +36,17 @@ backend/app/jobs/default_jobs.example.json
 
 ## ⚙️ Важные переменные
 
-- `HYBRID_APP_NAME`
-- `HYBRID_DB_PATH`
-- `HYBRID_JOBS_FILE`
-- `HYBRID_RCLONE_CONFIG`
-- `HYBRID_API_TOKEN`
-- `HYBRID_WATCHER_DEBOUNCE_SECONDS`
-- `HYBRID_COPY_STARTUP_DELAY_SECONDS`
-- `HYBRID_COPY_MIN_START_INTERVAL_SECONDS`
-- `HYBRID_ENABLE_SCHEDULER`
-- `HYBRID_STANDARD_INTERVAL_MINUTES`
-- `HYBRID_HEAVY_HOUR`
+- `TASKBOARD_APP_NAME`
+- `TASKBOARD_DB_PATH`
+- `TASKBOARD_JOBS_FILE`
+- `TASKBOARD_RCLONE_CONFIG`
+- `TASKBOARD_API_TOKEN`
+- `TASKBOARD_WATCHER_DEBOUNCE_SECONDS`
+- `TASKBOARD_COPY_STARTUP_DELAY_SECONDS`
+- `TASKBOARD_COPY_MIN_START_INTERVAL_SECONDS`
+- `TASKBOARD_ENABLE_SCHEDULER`
+- `TASKBOARD_STANDARD_INTERVAL_MINUTES`
+- `TASKBOARD_HEAVY_HOUR`
 
 ---
 

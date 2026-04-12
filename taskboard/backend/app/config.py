@@ -61,42 +61,45 @@ def load_settings() -> Settings:
     else:
         app_root = Path(__file__).resolve().parents[1]
 
-    db_path = Path(os.getenv("HYBRID_DB_PATH", app_root / "data" / "hybrid.db")).expanduser()
+    db_path = Path(os.getenv("TASKBOARD_DB_PATH", app_root / "data" / "taskboard.db")).expanduser()
     jobs_file = Path(
-        os.getenv("HYBRID_JOBS_FILE", app_root / "app" / "jobs" / "default_jobs.json")
+        os.getenv("TASKBOARD_JOBS_FILE", app_root / "app" / "jobs" / "default_jobs.json")
     ).expanduser()
     rclone_config_file = Path(
-        os.getenv("HYBRID_RCLONE_CONFIG", Path.home() / ".config" / "rclone" / "rclone.conf")
+        os.getenv("TASKBOARD_RCLONE_CONFIG", Path.home() / ".config" / "rclone" / "rclone.conf")
     ).expanduser()
 
-    standard_interval = max(1, _read_int("HYBRID_STANDARD_INTERVAL_MINUTES", 1))
-    heavy_hour = _read_int("HYBRID_HEAVY_HOUR", 3)
+    standard_interval = max(1, _read_int("TASKBOARD_STANDARD_INTERVAL_MINUTES", 1))
+    heavy_hour = _read_int("TASKBOARD_HEAVY_HOUR", 3)
     if heavy_hour < 0:
         heavy_hour = 0
     if heavy_hour > 23:
         heavy_hour = 23
 
     return Settings(
-        app_name=os.getenv("HYBRID_APP_NAME", "rclone-hybrid"),
+        app_name=os.getenv("TASKBOARD_APP_NAME", "rclone-taskboard"),
         app_root=app_root,
         db_path=db_path.resolve(),
         jobs_file=jobs_file.resolve(),
         rclone_config_file=rclone_config_file.resolve(),
         timezone=os.getenv("APP_TIMEZONE", "Europe/Moscow"),
-        enable_scheduler=_read_bool("HYBRID_ENABLE_SCHEDULER", True),
+        enable_scheduler=_read_bool("TASKBOARD_ENABLE_SCHEDULER", True),
         standard_interval_minutes=standard_interval,
         heavy_hour=heavy_hour,
         watcher_debounce_seconds=max(
             1,
-            _read_int_any(["HYBRID_WATCHER_DEBOUNCE_SECONDS", "HYBRID_EVENT_DEBOUNCE_SECONDS"], 45),
+            _read_int_any([
+                "TASKBOARD_WATCHER_DEBOUNCE_SECONDS",
+                "TASKBOARD_EVENT_DEBOUNCE_SECONDS",
+            ], 45),
         ),
-        copy_startup_delay_seconds=max(0, _read_int("HYBRID_COPY_STARTUP_DELAY_SECONDS", 60)),
+        copy_startup_delay_seconds=max(0, _read_int("TASKBOARD_COPY_STARTUP_DELAY_SECONDS", 60)),
         copy_min_start_interval_seconds=max(
             0,
-            _read_int("HYBRID_COPY_MIN_START_INTERVAL_SECONDS", 60),
+            _read_int("TASKBOARD_COPY_MIN_START_INTERVAL_SECONDS", 60),
         ),
-        default_timeout_seconds=max(1, _read_int("HYBRID_DEFAULT_TIMEOUT_SECONDS", 3600)),
-        output_tail_chars=max(512, _read_int("HYBRID_OUTPUT_TAIL_CHARS", 8000)),
-        dry_run=_read_bool("HYBRID_DRY_RUN", False),
-        api_token=os.getenv("HYBRID_API_TOKEN"),
+        default_timeout_seconds=max(1, _read_int("TASKBOARD_DEFAULT_TIMEOUT_SECONDS", 3600)),
+        output_tail_chars=max(512, _read_int("TASKBOARD_OUTPUT_TAIL_CHARS", 8000)),
+        dry_run=_read_bool("TASKBOARD_DRY_RUN", False),
+        api_token=os.getenv("TASKBOARD_API_TOKEN"),
     )

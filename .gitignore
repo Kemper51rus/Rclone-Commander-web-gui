@@ -1,18 +1,18 @@
 # Secrets and local environment
 .codex
-hybrid/.env
-hybrid/backend/app/jobs/default_jobs.json
+taskboard/.env
+taskboard/backend/app/jobs/default_jobs.json
 Security.md
 docs/Security.md
-hybrid/Security.md
+taskboard/Security.md
 
 # Sensitive runtime state and logs
 state/
-hybrid/backend/data/
-hybrid/data/
+taskboard/backend/data/
+taskboard/data/
 
 # Local Python artifacts
-hybrid/.venv/
-hybrid/backend/app/__pycache__/
+taskboard/.venv/
+taskboard/backend/app/__pycache__/
 *.pyc
 ndeep-research-report.mdn

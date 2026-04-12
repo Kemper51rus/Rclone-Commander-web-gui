@@ -10,8 +10,8 @@
 
 | Файл | Роль |
 | --- | --- |
-| `hybrid/backend/app/jobs/default_jobs.example.json` | Шаблон каталога, хранится в Git |
-| `hybrid/backend/app/jobs/default_jobs.json` | Рабочий каталог, создаётся из шаблона |
+| `taskboard/backend/app/jobs/default_jobs.example.json` | Шаблон каталога, хранится в Git |
+| `taskboard/backend/app/jobs/default_jobs.json` | Рабочий каталог, создаётся из шаблона |
 
 ### Основные секции
 
@@ -95,22 +95,22 @@ default_jobs.example.json -> default_jobs.json
 
 | Переменная | Назначение |
 | --- | --- |
-| `HYBRID_APP_NAME` | Публичное имя приложения |
+| `TASKBOARD_APP_NAME` | Публичное имя приложения |
 | `APP_ROOT` | Корневой рабочий каталог |
-| `HYBRID_DB_PATH` | Путь к SQLite |
-| `HYBRID_JOBS_FILE` | Путь к рабочему каталогу |
-| `HYBRID_RCLONE_CONFIG` | Путь к `rclone.conf` |
+| `TASKBOARD_DB_PATH` | Путь к SQLite |
+| `TASKBOARD_JOBS_FILE` | Путь к рабочему каталогу |
+| `TASKBOARD_RCLONE_CONFIG` | Путь к `rclone.conf` |
 | `APP_TIMEZONE` | Таймзона приложения |
-| `HYBRID_ENABLE_SCHEDULER` | Включение scheduler |
-| `HYBRID_STANDARD_INTERVAL_MINUTES` | Интервал стандартных задач |
-| `HYBRID_HEAVY_HOUR` | Час heavy-задач |
-| `HYBRID_WATCHER_DEBOUNCE_SECONDS` | Начальное значение debounce для watcher |
-| `HYBRID_COPY_STARTUP_DELAY_SECONDS` | Задержка перед первым стартом backup/sync после запуска backend |
-| `HYBRID_COPY_MIN_START_INTERVAL_SECONDS` | Минимальный интервал между стартами backup/sync по всей системе |
-| `HYBRID_DEFAULT_TIMEOUT_SECONDS` | Таймаут команд по умолчанию |
-| `HYBRID_OUTPUT_TAIL_CHARS` | Размер сохраняемого tail вывода |
-| `HYBRID_DRY_RUN` | Dry-run режим |
-| `HYBRID_API_TOKEN` | Токен для write access |
+| `TASKBOARD_ENABLE_SCHEDULER` | Включение scheduler |
+| `TASKBOARD_STANDARD_INTERVAL_MINUTES` | Интервал стандартных задач |
+| `TASKBOARD_HEAVY_HOUR` | Час heavy-задач |
+| `TASKBOARD_WATCHER_DEBOUNCE_SECONDS` | Начальное значение debounce для watcher |
+| `TASKBOARD_COPY_STARTUP_DELAY_SECONDS` | Задержка перед первым стартом backup/sync после запуска backend |
+| `TASKBOARD_COPY_MIN_START_INTERVAL_SECONDS` | Минимальный интервал между стартами backup/sync по всей системе |
+| `TASKBOARD_DEFAULT_TIMEOUT_SECONDS` | Таймаут команд по умолчанию |
+| `TASKBOARD_OUTPUT_TAIL_CHARS` | Размер сохраняемого tail вывода |
+| `TASKBOARD_DRY_RUN` | Dry-run режим |
+| `TASKBOARD_API_TOKEN` | Токен для write access |
 
 ---
 

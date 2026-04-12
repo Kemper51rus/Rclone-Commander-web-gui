@@ -1,6 +1,6 @@
 # 🔄 Legacy Migration
 
-Этот документ описывает переход со старой связки shell-скриптов и systemd на текущий hybrid runtime приложения.
+Этот документ описывает переход со старой связки shell-скриптов и systemd на текущий taskboard runtime приложения.
 
 ---
 
@@ -18,7 +18,7 @@ Legacy stack обычно включал:
 ## 🛠️ Migration Command
 
 ```bash
-sudo ./scripts/install.sh migrate-legacy
+sudo ./install.sh migrate-legacy
 ```
 
 ### Полная установка с migration
@@ -26,7 +26,7 @@ sudo ./scripts/install.sh migrate-legacy
 Для установки/обновления и migration в одном процессе запустите:
 
 ```bash
-sudo ./scripts/install.sh
+sudo ./install.sh
 ```
 
 ---
@@ -37,7 +37,7 @@ sudo ./scripts/install.sh
 2. Экспортирует unit definitions и status output
 3. Копирует legacy runtime artifacts в backup directory
 4. Останавливает и отключает legacy services
-5. Удаляет legacy scripts/unit'ы после backup
+5. Удаляет legacy-скрипты и unit'ы после backup
 
 ---
 
@@ -59,13 +59,13 @@ sudo ./scripts/install.sh
 ### Миграция в Systemd
 
 ```bash
-sudo ./scripts/install.sh migrate-legacy
+sudo ./install.sh migrate-legacy
 ```
 
 ### Миграция в Docker
 
 ```bash
-sudo ./scripts/install.sh
+sudo ./install.sh
 ```
 
 ---

@@ -1,9 +1,9 @@
 services:
-  hybrid-web:
+  taskboard-web:
     build:
       context: ..
-      dockerfile: hybrid/backend/Dockerfile
-    container_name: rclone-hybrid-web
+      dockerfile: taskboard/backend/Dockerfile
+    container_name: rclone-taskboard-web
     restart: unless-stopped
     env_file:
       - ./.env.docker

@@ -63,11 +63,11 @@ Scheduler работает внутри web-сервиса.
 
 ### Runtime Catalog
 
-- `hybrid/backend/app/jobs/default_jobs.json`
+- `taskboard/backend/app/jobs/default_jobs.json`
 
 ### SQLite Database
 
-- путь задаётся через `HYBRID_DB_PATH`
+- путь задаётся через `TASKBOARD_DB_PATH`
 - значение по умолчанию зависит от выбранного способа развертывания
 
 В базе хранятся:

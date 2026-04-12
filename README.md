@@ -1,12 +1,12 @@
-# 🚀 Rclone Commander Web GUI
+# 🚀 Rclone taskboard (web gui)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/hybrid/backend/app/rclone-commander-logo.svg" alt="Rclone Commander Web GUI" width="260">
+  <img src="https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/taskboard/backend/app/rclone-taskboard-logo.svg" alt="Rclone taskboard (web gui)" width="260">
 </p>
 
 Веб-панель для управления backup-задачами на базе `rclone`.
 
-`Rclone Commander Web GUI` собирает запуск задач, расписание, очереди, историю и интерфейс управления в одном приложении. Сам перенос данных по-прежнему выполняет `rclone`, а приложение отвечает за координацию, хранение состояния и работу API.
+`Rclone taskboard (web gui)` собирает запуск задач, расписание, очереди, историю и интерфейс управления в одном приложении. Сам перенос данных по-прежнему выполняет `rclone`, а приложение отвечает за координацию, хранение состояния и работу API.
 
 ---
 
@@ -15,7 +15,7 @@
 Запуск напрямую из GitHub:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/scripts/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-web-gui/main/install.sh)
 ```
 
 ---
@@ -83,7 +83,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-w
 ```text
 .
 ├── docs/
-├── hybrid/
+├── taskboard/
 │   ├── backend/
 │   │   ├── app/
 │   │   ├── Dockerfile
@@ -92,7 +92,6 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-w
 │   ├── .env.systemd.example
 │   └── docker-compose.yml
 ├── legacy/
-├── scripts/
 ├── systemd/
 └── README.md
 ```
@@ -101,13 +100,12 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-w
 
 | Путь | Назначение |
 | --- | --- |
-| `hybrid/backend/app/` | Исходный код backend |
-| `hybrid/backend/app/jobs/default_jobs.example.json` | Шаблон каталога задач |
-| `hybrid/backend/app/jobs/default_jobs.json` | Рабочий каталог задач, создаётся при первом запуске |
-| `hybrid/docker-compose.yml` | Docker-стек |
+| `taskboard/backend/app/` | Исходный код backend |
+| `taskboard/backend/app/jobs/default_jobs.example.json` | Шаблон каталога задач |
+| `taskboard/backend/app/jobs/default_jobs.json` | Рабочий каталог задач, создаётся при первом запуске |
+| `taskboard/docker-compose.yml` | Docker-стек |
 | `legacy/` | Отдельные материалы и скрипты для старого окружения |
 | `systemd/` | Unit-файлы для запуска на хосте |
-| `scripts/` | Скрипты установки |
 
 ---
 
@@ -130,14 +128,14 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-Commander-w
 #### Быстрый старт
 
 ```bash
-cd hybrid
+cd taskboard
 cp .env.docker.example .env.docker
 docker compose --env-file .env.docker up -d --build
 ```
 
 #### Что запускается
 
-- `hybrid-web` — API, dashboard, scheduler, workers и встроенный watcher
+- `taskboard-web` — API, dashboard, scheduler, workers и встроенный watcher
 
 ### 🖥️ Systemd
 
@@ -154,18 +152,18 @@ docker compose --env-file .env.docker up -d --build
 #### Быстрый старт
 
 ```bash
-sudo ./scripts/install.sh systemd
+sudo ./install.sh systemd
 ```
 
 #### Переход со старого external watcher
 
-Если раньше использовался legacy pipeline или отдельный `rclone-watch-hybrid.service`, после обновления достаточно один раз выполнить:
+Если раньше использовался legacy pipeline или отдельный watcher-service, после обновления достаточно один раз выполнить:
 
 ```bash
-sudo ./scripts/install.sh migrate-legacy
+sudo ./install.sh migrate-legacy
 ```
 
-Скрипт сделает backup, остановит и отключит старые unit'ы, удалит устаревшие scripts/unit'ы при наличии и оставит только встроенный watcher внутри backend.
+Скрипт сделает backup, остановит и отключит старые unit'ы, удалит устаревшие legacy-скрипты и unit'ы при наличии и оставит только встроенный watcher внутри backend.
 
 ---
 
@@ -251,20 +249,20 @@ default_jobs.example.json -> default_jobs.json
 
 | Переменная | Назначение |
 | --- | --- |
-| `HYBRID_APP_NAME` | Имя приложения |
+| `TASKBOARD_APP_NAME` | Имя приложения |
 | `APP_ROOT` | Корневой рабочий каталог |
-| `HYBRID_DB_PATH` | Путь к SQLite |
-| `HYBRID_JOBS_FILE` | Путь к рабочему каталогу задач |
-| `HYBRID_RCLONE_CONFIG` | Путь к `rclone.conf` |
+| `TASKBOARD_DB_PATH` | Путь к SQLite |
+| `TASKBOARD_JOBS_FILE` | Путь к рабочему каталогу задач |
+| `TASKBOARD_RCLONE_CONFIG` | Путь к `rclone.conf` |
 | `APP_TIMEZONE` | Таймзона приложения |
-| `HYBRID_ENABLE_SCHEDULER` | Включение scheduler |
-| `HYBRID_STANDARD_INTERVAL_MINUTES` | Интервал стандартных задач |
-| `HYBRID_HEAVY_HOUR` | Час запуска heavy-задач |
-| `HYBRID_WATCHER_DEBOUNCE_SECONDS` | Начальное значение debounce для watcher |
-| `HYBRID_DEFAULT_TIMEOUT_SECONDS` | Таймаут команд по умолчанию |
-| `HYBRID_OUTPUT_TAIL_CHARS` | Размер сохраняемого tail вывода |
-| `HYBRID_DRY_RUN` | Dry-run режим |
-| `HYBRID_API_TOKEN` | Токен для операций записи |
+| `TASKBOARD_ENABLE_SCHEDULER` | Включение scheduler |
+| `TASKBOARD_STANDARD_INTERVAL_MINUTES` | Интервал стандартных задач |
+| `TASKBOARD_HEAVY_HOUR` | Час запуска heavy-задач |
+| `TASKBOARD_WATCHER_DEBOUNCE_SECONDS` | Начальное значение debounce для watcher |
+| `TASKBOARD_DEFAULT_TIMEOUT_SECONDS` | Таймаут команд по умолчанию |
+| `TASKBOARD_OUTPUT_TAIL_CHARS` | Размер сохраняемого tail вывода |
+| `TASKBOARD_DRY_RUN` | Dry-run режим |
+| `TASKBOARD_API_TOKEN` | Токен для операций записи |
 
 ---
 
@@ -304,10 +302,10 @@ curl -X POST http://127.0.0.1:8080/api/triggers/event \
   -d '{"event_type":"filesystem","path":"/media/photo/immich_library/upload","details":{"event":"close_write"}}'
 ```
 
-### Установка через scripts
+### Установка через installer
 
 ```bash
-sudo ./scripts/install.sh
+sudo ./install.sh
 ```
 
 ## ❓ FAQ
@@ -342,8 +340,8 @@ sudo ./scripts/install.sh
 - `docs/01-overview.md` — обзор проекта
 - `docs/03-runtime-behavior.md` — как создаются и исполняются запуски
 - `docs/04-api-reference.md` — полное описание API
-- `docs/06-hybrid-mvp.md` — структура каталога и настройки
+- `docs/06-taskboard-mvp.md` — структура каталога и настройки
 - `docs/07-deployment.md` — развертывание
-- `hybrid/README.md` — заметки по каталогу `hybrid/`
+- `taskboard/README.md` — заметки по каталогу `taskboard/`
 - `legacy/README.md` — отдельные материалы по старому окружению и миграции
 - `Security.md` — локальные заметки по безопасности, файл игнорируется Git

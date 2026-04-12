@@ -3,15 +3,16 @@ set -euo pipefail
 
 DEFAULT_GIT_URL="${DEFAULT_GIT_URL:-https://github.com/Kemper51rus/Rclone-Commander-web-gui.git}"
 DEFAULT_GIT_REF="${DEFAULT_GIT_REF:-main}"
-TARGET_ROOT="${TARGET_ROOT:-/opt/rclone-hybrid}"
+TARGET_ROOT="${TARGET_ROOT:-/opt/rclone-taskboard}"
 SOURCE_ROOT="${SOURCE_ROOT:-}"
 SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
-SERVICE_NAME="${SERVICE_NAME:-rclone-hybrid-web.service}"
-SOURCE_CHECKOUT_DEFAULT="${SOURCE_CHECKOUT_DEFAULT:-/opt/rclone-commander-src}"
+SERVICE_NAME="${SERVICE_NAME:-rclone-taskboard-web.service}"
+SOURCE_CHECKOUT_DEFAULT="${SOURCE_CHECKOUT_DEFAULT:-/opt/rclone-taskboard-src}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_REPO_ROOT="$(git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel 2>/dev/null || true)"
+SCRIPT_REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
+SCRIPT_ARGS=("$@")
 
 LEGACY_UNITS=(
   rclone-backup.service
@@ -36,7 +37,17 @@ die() {
 
 need_root() {
   if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-    die "Запустите скрипт от root: sudo $0"
+    if command_exists sudo; then
+      local sudo_copy
+      sudo_copy="$(mktemp /tmp/rclone-taskboard-install.XXXXXX)"
+      cat "$0" > "$sudo_copy"
+      chmod 755 "$sudo_copy"
+      if [[ -n "$SCRIPT_REPO_ROOT" && -z "$SOURCE_ROOT" ]]; then
+        export SOURCE_ROOT="$SCRIPT_REPO_ROOT"
+      fi
+      exec sudo -E bash "$sudo_copy" "${SCRIPT_ARGS[@]}"
+    fi
+    die "Запустите скрипт от root."
   fi
 }
 
@@ -197,7 +208,7 @@ prepare_source_checkout() {
     git clone --branch "$git_ref" "$git_url" "$SOURCE_ROOT"
   fi
 
-  [[ -f "$SOURCE_ROOT/hybrid/backend/app/main.py" ]] || die "В $SOURCE_ROOT не найден hybrid/backend/app/main.py"
+  [[ -f "$SOURCE_ROOT/taskboard/backend/app/main.py" ]] || die "В $SOURCE_ROOT не найден taskboard/backend/app/main.py"
 }
 
 copy_runtime_bundle() {
@@ -206,40 +217,40 @@ copy_runtime_bundle() {
 
   install -d \
     "$target_root" \
-    "$target_root/hybrid" \
-    "$target_root/hybrid/backend" \
-    "$target_root/hybrid/backend/app" \
-    "$target_root/hybrid/data" \
-    "$target_root/systemd" \
-    "$target_root/scripts"
+    "$target_root/taskboard" \
+    "$target_root/taskboard/backend" \
+    "$target_root/taskboard/backend/app" \
+    "$target_root/taskboard/data" \
+    "$target_root/systemd"
 
-  cp -a "$source_root/hybrid/backend/app/." "$target_root/hybrid/backend/app/"
-  find "$target_root/hybrid/backend/app" \( -type d -name __pycache__ -o -type f -name '*.pyc' \) -exec rm -rf {} +
+  cp -a "$source_root/taskboard/backend/app/." "$target_root/taskboard/backend/app/"
+  find "$target_root/taskboard/backend/app" \( -type d -name __pycache__ -o -type f -name '*.pyc' \) -exec rm -rf {} +
 
-  install -m 0644 "$source_root/hybrid/backend/requirements.txt" "$target_root/hybrid/backend/requirements.txt"
-  install -m 0644 "$source_root/hybrid/backend/app/jobs/default_jobs.example.json" "$target_root/hybrid/backend/app/jobs/default_jobs.example.json"
-  install -m 0755 "$source_root/scripts/install.sh" "$target_root/scripts/install.sh"
+  install -m 0644 "$source_root/taskboard/backend/requirements.txt" "$target_root/taskboard/backend/requirements.txt"
+  install -m 0644 "$source_root/taskboard/backend/app/jobs/default_jobs.example.json" "$target_root/taskboard/backend/app/jobs/default_jobs.example.json"
+  install -m 0755 "$source_root/install.sh" "$target_root/install.sh"
   rm -f \
-    "$target_root/scripts/install-hybrid-systemd.sh" \
-    "$target_root/scripts/install-hybrid-docker.sh" \
+    "$target_root/scripts/install-taskboard-systemd.sh" \
+    "$target_root/scripts/install-taskboard-docker.sh" \
     "$target_root/scripts/migrate-embedded-watcher-systemd.sh"
-  if [[ -f "$source_root/hybrid/backend/Dockerfile" ]]; then
-    install -m 0644 "$source_root/hybrid/backend/Dockerfile" "$target_root/hybrid/backend/Dockerfile"
+  rmdir "$target_root/scripts" 2>/dev/null || true
+  if [[ -f "$source_root/taskboard/backend/Dockerfile" ]]; then
+    install -m 0644 "$source_root/taskboard/backend/Dockerfile" "$target_root/taskboard/backend/Dockerfile"
   fi
-  if [[ -f "$source_root/hybrid/docker-compose.yml" ]]; then
-    install -m 0644 "$source_root/hybrid/docker-compose.yml" "$target_root/hybrid/docker-compose.yml"
+  if [[ -f "$source_root/taskboard/docker-compose.yml" ]]; then
+    install -m 0644 "$source_root/taskboard/docker-compose.yml" "$target_root/taskboard/docker-compose.yml"
   fi
-  if [[ -f "$source_root/hybrid/.env.docker.example" ]]; then
-    install -m 0644 "$source_root/hybrid/.env.docker.example" "$target_root/hybrid/.env.docker.example"
+  if [[ -f "$source_root/taskboard/.env.docker.example" ]]; then
+    install -m 0644 "$source_root/taskboard/.env.docker.example" "$target_root/taskboard/.env.docker.example"
   fi
-  if [[ -f "$source_root/hybrid/.env.systemd.example" ]]; then
-    install -m 0644 "$source_root/hybrid/.env.systemd.example" "$target_root/hybrid/.env.systemd.example"
+  if [[ -f "$source_root/taskboard/.env.systemd.example" ]]; then
+    install -m 0644 "$source_root/taskboard/.env.systemd.example" "$target_root/taskboard/.env.systemd.example"
   fi
 
-  if [[ ! -f "$target_root/hybrid/backend/app/jobs/default_jobs.json" ]]; then
+  if [[ ! -f "$target_root/taskboard/backend/app/jobs/default_jobs.json" ]]; then
     install -m 0644 \
-      "$source_root/hybrid/backend/app/jobs/default_jobs.example.json" \
-      "$target_root/hybrid/backend/app/jobs/default_jobs.json"
+      "$source_root/taskboard/backend/app/jobs/default_jobs.example.json" \
+      "$target_root/taskboard/backend/app/jobs/default_jobs.json"
   fi
 }
 
@@ -252,14 +263,14 @@ install_systemd_unit() {
   local target_root="$2"
   local escaped_target
   escaped_target="$(escape_sed_replacement "$target_root")"
-  sed "s|/opt/rclone-hybrid|$escaped_target|g" \
-    "$source_root/systemd/rclone-hybrid-web.service" > "$target_root/systemd/rclone-hybrid-web.service"
-  install -m 0644 "$target_root/systemd/rclone-hybrid-web.service" "$SYSTEMD_DIR/$SERVICE_NAME"
+  sed "s|/opt/rclone-taskboard|$escaped_target|g" \
+    "$source_root/systemd/rclone-taskboard-web.service" > "$target_root/systemd/rclone-taskboard-web.service"
+  install -m 0644 "$target_root/systemd/rclone-taskboard-web.service" "$SYSTEMD_DIR/$SERVICE_NAME"
   systemctl daemon-reload
 }
 
 remove_obsolete_embedded_watcher_unit() {
-  local old_service="${OLD_WATCHER_SERVICE:-rclone-watch-hybrid.service}"
+  local old_service="${OLD_WATCHER_SERVICE:-rclone-watch-taskboard.service}"
   if systemctl is-active --quiet "$old_service" 2>/dev/null; then
     systemctl stop "$old_service" || true
   fi
@@ -281,13 +292,13 @@ install_or_update_systemd() {
   fi
 
   copy_runtime_bundle "$SOURCE_ROOT" "$TARGET_ROOT"
-  if [[ ! -f "$TARGET_ROOT/hybrid/.env" ]]; then
-    install -m 0644 "$SOURCE_ROOT/hybrid/.env.systemd.example" "$TARGET_ROOT/hybrid/.env"
+  if [[ ! -f "$TARGET_ROOT/taskboard/.env" ]]; then
+    install -m 0644 "$SOURCE_ROOT/taskboard/.env.systemd.example" "$TARGET_ROOT/taskboard/.env"
   fi
 
-  "$PYTHON_BIN" -m venv "$TARGET_ROOT/hybrid/.venv"
-  "$TARGET_ROOT/hybrid/.venv/bin/pip" install --upgrade pip
-  "$TARGET_ROOT/hybrid/.venv/bin/pip" install -r "$TARGET_ROOT/hybrid/backend/requirements.txt"
+  "$PYTHON_BIN" -m venv "$TARGET_ROOT/taskboard/.venv"
+  "$TARGET_ROOT/taskboard/.venv/bin/pip" install --upgrade pip
+  "$TARGET_ROOT/taskboard/.venv/bin/pip" install -r "$TARGET_ROOT/taskboard/backend/requirements.txt"
 
   install_systemd_unit "$SOURCE_ROOT" "$TARGET_ROOT"
   remove_obsolete_embedded_watcher_unit
@@ -310,12 +321,12 @@ install_or_update_docker() {
   fi
 
   copy_runtime_bundle "$SOURCE_ROOT" "$TARGET_ROOT"
-  if [[ ! -f "$TARGET_ROOT/hybrid/.env.docker" ]]; then
-    install -m 0644 "$SOURCE_ROOT/hybrid/.env.docker.example" "$TARGET_ROOT/hybrid/.env.docker"
+  if [[ ! -f "$TARGET_ROOT/taskboard/.env.docker" ]]; then
+    install -m 0644 "$SOURCE_ROOT/taskboard/.env.docker.example" "$TARGET_ROOT/taskboard/.env.docker"
   fi
 
   (
-    cd "$TARGET_ROOT/hybrid"
+    cd "$TARGET_ROOT/taskboard"
     docker_compose --env-file .env.docker up -d --build
   )
 
@@ -378,22 +389,22 @@ cleanup_legacy() {
   log "Backup snapshot: $backup_root"
 }
 
-uninstall_hybrid() {
+uninstall_taskboard() {
   need_root
   TARGET_ROOT="$(ask_value "Каталог установленного runtime" "$TARGET_ROOT")"
 
   log "Будет остановлен и отключен $SERVICE_NAME, если он установлен."
-  if confirm "Продолжить удаление hybrid-служб?" "no"; then
+  if confirm "Продолжить удаление taskboard-служб?" "no"; then
     systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
     rm -f "$SYSTEMD_DIR/$SERVICE_NAME"
     systemctl daemon-reload
     systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
   fi
 
-  if [[ -f "$TARGET_ROOT/hybrid/docker-compose.yml" ]]; then
-    if confirm "Остановить docker compose stack в $TARGET_ROOT/hybrid?" "yes"; then
+  if [[ -f "$TARGET_ROOT/taskboard/docker-compose.yml" ]]; then
+    if confirm "Остановить docker compose stack в $TARGET_ROOT/taskboard?" "yes"; then
       (
-        cd "$TARGET_ROOT/hybrid"
+        cd "$TARGET_ROOT/taskboard"
         docker_compose --env-file .env.docker down || true
       )
     fi
@@ -437,8 +448,8 @@ main_menu() {
 Выберите действие:
   1) Установить/обновить через systemd
   2) Установить/обновить через Docker
-  3) Только переход с legacy: backup + удалить старые scripts/unit'ы
-  4) Удалить hybrid-установку
+  3) Только переход с legacy: backup + удалить старые legacy-скрипты и unit'ы
+  4) Удалить taskboard-установку
   5) Выйти
 MENU
     local choice
@@ -447,7 +458,7 @@ MENU
       1) install_or_update_systemd ;;
       2) install_or_update_docker ;;
       3) TARGET_ROOT="$(ask_value "Каталог для migration-backups" "$TARGET_ROOT")"; cleanup_legacy ;;
-      4) uninstall_hybrid ;;
+      4) uninstall_taskboard ;;
       5|q|quit|exit) exit 0 ;;
       *) log "Неизвестный выбор: $choice" ;;
     esac
@@ -458,7 +469,7 @@ case "${1:-}" in
   systemd) install_or_update_systemd ;;
   docker) install_or_update_docker ;;
   legacy-cleanup|migrate-legacy) TARGET_ROOT="$(ask_value "Каталог для migration-backups" "$TARGET_ROOT")"; cleanup_legacy ;;
-  uninstall|remove) uninstall_hybrid ;;
+  uninstall|remove) uninstall_taskboard ;;
   ""|menu) main_menu ;;
   *)
     cat <<EOF
@@ -466,8 +477,8 @@ Usage:
   $0                 # interactive menu
   $0 systemd         # install/update systemd deployment
   $0 docker          # install/update docker deployment
-  $0 migrate-legacy  # backup and remove legacy scripts/units
-  $0 uninstall       # remove hybrid deployment
+  $0 migrate-legacy  # backup and remove legacy scripts and units
+  $0 uninstall       # remove taskboard deployment
 
 Environment:
   TARGET_ROOT=$TARGET_ROOT

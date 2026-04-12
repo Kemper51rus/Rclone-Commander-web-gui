@@ -6,10 +6,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends bash curl rclone \
     && rm -rf /var/lib/apt/lists/*
 
-COPY hybrid/backend/requirements.txt /app/requirements.txt
+COPY taskboard/backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY hybrid/backend/app /app/app
+COPY taskboard/backend/app /app/app
 RUN mkdir -p /app/data
 
 ENV APP_ROOT=/app

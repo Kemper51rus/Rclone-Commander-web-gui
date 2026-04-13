@@ -65,15 +65,6 @@ log_warn() {
 
 log_err() {
   printf '%b\n' "${C_RED}ERR${C_RESET} $*"
-  printf '%b\n' "${C_GREEN}✔${C_RESET} $*"
-}
-
-log_warn() {
-  printf '%b\n' "${C_YELLOW}⚠${C_RESET} $*"
-}
-
-log_err() {
-  printf '%b\n' "${C_RED}✖${C_RESET} $*"
 }
 
 die() {
@@ -103,18 +94,7 @@ command_exists() {
 
 confirm() {
   local prompt="$1"
-  local default="${2:-no}"
-  local suffix="[y/N]"
-  local answer
-  [[ "$default" == "yes" ]] && suffix="[Y/n]"
-  while true; do
-    read -r -p "$prompt $suffix " answer
-    answer="${answer,,}"
-    if [[ -z "$answer" ]]; then
-      [[ "$default" == "yes" ]]
-      return
-    fi
-    case "$answer" in
+@@ -72,115 +109,151 @@ confirm() {
       y|yes|д|да) return 0 ;;
       n|no|н|нет) return 1 ;;
       *) log "Ответьте yes/no или да/нет." ;;
@@ -165,7 +145,9 @@ install_packages() {
       fi
     done
     log "Выполняю: apt-get update"
-    apt-get update
+    if ! apt-get update; then
+      log_warn "apt-get update завершился с ошибкой. Продолжаю установку по текущему кэшу APT."
+    fi
     log "Выполняю: apt-get install -y ${packages[*]}"
     DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
     if [[ "${#to_record[@]}" -gt 0 ]]; then
@@ -264,239 +246,7 @@ default_source_root() {
   fi
 }
 
-prepare_source_checkout() {
-  local chosen_source
-  chosen_source="$(ask_value "Git checkout с исходниками" "${SOURCE_ROOT:-$(default_source_root)}")"
-  SOURCE_ROOT="$chosen_source"
-
-  if [[ -d "$SOURCE_ROOT/.git" ]]; then
-    log "Используется существующий Git checkout: $SOURCE_ROOT"
-    if confirm "Обновить checkout из Git перед установкой?" "yes"; then
-      git -C "$SOURCE_ROOT" fetch --all --prune
-      git -C "$SOURCE_ROOT" checkout "$DEFAULT_GIT_REF"
-      git -C "$SOURCE_ROOT" pull --ff-only
-    fi
-  else
-    local git_url
-    git_url="$(ask_value "Git URL репозитория" "$DEFAULT_GIT_URL")"
-    local git_ref
-    git_ref="$(ask_value "Git branch/tag" "$DEFAULT_GIT_REF")"
-    if [[ -e "$SOURCE_ROOT" ]]; then
-      die "$SOURCE_ROOT уже существует, но это не Git checkout. Укажите другой SOURCE_ROOT или удалите каталог вручную."
-    fi
-    install -d "$(dirname "$SOURCE_ROOT")"
-    git clone --branch "$git_ref" "$git_url" "$SOURCE_ROOT"
-  fi
-
-  [[ -f "$SOURCE_ROOT/taskboard/backend/app/main.py" ]] || die "В $SOURCE_ROOT не найден taskboard/backend/app/main.py"
-}
-
-copy_runtime_bundle() {
-  local source_root="$1"
-  local target_root="$2"
-
-  install -d \
-    "$target_root" \
-    "$target_root/taskboard" \
-    "$target_root/taskboard/backend" \
-    "$target_root/taskboard/backend/app" \
-    "$target_root/taskboard/data"
-
-  cp -a "$source_root/taskboard/backend/app/." "$target_root/taskboard/backend/app/"
-  find "$target_root/taskboard/backend/app" \( -type d -name __pycache__ -o -type f -name '*.pyc' \) -exec rm -rf {} +
-
-  install -m 0644 "$source_root/taskboard/backend/requirements.txt" "$target_root/taskboard/backend/requirements.txt"
-  install -m 0644 "$source_root/taskboard/backend/app/jobs/default_jobs.example.json" "$target_root/taskboard/backend/app/jobs/default_jobs.example.json"
-  install -m 0755 "$source_root/install.sh" "$target_root/install.sh"
-  rm -f \
-    "$target_root/scripts/install-taskboard-systemd.sh" \
-    "$target_root/scripts/install-taskboard-docker.sh" \
-    "$target_root/scripts/migrate-embedded-watcher-systemd.sh" \
-    "$target_root/systemd/${SERVICE_NAME%.service}-web.service" \
-    "$target_root/systemd/rclone-taskboard.service"
-  rmdir "$target_root/scripts" 2>/dev/null || true
-  rmdir "$target_root/systemd" 2>/dev/null || true
-  if [[ -f "$source_root/taskboard/backend/Dockerfile" ]]; then
-    install -m 0644 "$source_root/taskboard/backend/Dockerfile" "$target_root/taskboard/backend/Dockerfile"
-  fi
-  if [[ -f "$source_root/taskboard/docker-compose.yml" ]]; then
-    install -m 0644 "$source_root/taskboard/docker-compose.yml" "$target_root/taskboard/docker-compose.yml"
-  fi
-  if [[ -f "$source_root/taskboard/.env.docker.example" ]]; then
-    install -m 0644 "$source_root/taskboard/.env.docker.example" "$target_root/taskboard/.env.docker.example"
-  fi
-  if [[ -f "$source_root/taskboard/.env.systemd.example" ]]; then
-    install -m 0644 "$source_root/taskboard/.env.systemd.example" "$target_root/taskboard/.env.systemd.example"
-  fi
-
-  if [[ ! -f "$target_root/taskboard/backend/app/jobs/default_jobs.json" ]]; then
-    install -m 0644 \
-      "$source_root/taskboard/backend/app/jobs/default_jobs.example.json" \
-      "$target_root/taskboard/backend/app/jobs/default_jobs.json"
-  fi
-}
-
-escape_sed_replacement() {
-  printf '%s' "$1" | sed 's/[&|\\]/\\&/g'
-}
-
-install_systemd_unit() {
-  local source_root="$1"
-  local target_root="$2"
-  local escaped_target
-  escaped_target="$(escape_sed_replacement "$target_root")"
-  sed "s|/opt/rclone-taskboard|$escaped_target|g" \
-    "$source_root/rclone-taskboard.service" > "$target_root/rclone-taskboard.service"
-  install -m 0644 "$target_root/rclone-taskboard.service" "$SYSTEMD_DIR/$SERVICE_NAME"
-  systemctl daemon-reload
-}
-
-remove_obsolete_taskboard_units() {
-  local old_service
-  for old_service in "${SERVICE_NAME%.service}-web.service"; do
-    [[ "$old_service" == "$SERVICE_NAME" ]] && continue
-    if systemctl is-active --quiet "$old_service" 2>/dev/null; then
-      systemctl stop "$old_service" || true
-    fi
-    if systemctl is-enabled --quiet "$old_service" 2>/dev/null; then
-      systemctl disable "$old_service" || true
-    fi
-    rm -f "$SYSTEMD_DIR/$old_service"
-  done
-  systemctl daemon-reload
-}
-
-remove_obsolete_embedded_watcher_unit() {
-  local old_service="${OLD_WATCHER_SERVICE:-rclone-watch-taskboard.service}"
-  if systemctl is-active --quiet "$old_service" 2>/dev/null; then
-    systemctl stop "$old_service" || true
-  fi
-  if systemctl is-enabled --quiet "$old_service" 2>/dev/null; then
-    systemctl disable "$old_service" || true
-  fi
-  rm -f "$SYSTEMD_DIR/$old_service"
-  systemctl daemon-reload
-}
-
-install_or_update_systemd() {
-  need_root
-  TARGET_ROOT="$(ask_value "Каталог установки runtime" "$TARGET_ROOT")"
-  ensure_dependencies systemd
-  prepare_source_checkout
-
-  if confirm "Выполнить переход с legacy и удалить старые скрипты/unit'ы?" "no"; then
-    cleanup_legacy
-  fi
-
-  copy_runtime_bundle "$SOURCE_ROOT" "$TARGET_ROOT"
-  if [[ ! -f "$TARGET_ROOT/taskboard/.env" ]]; then
-    install -m 0644 "$SOURCE_ROOT/taskboard/.env.systemd.example" "$TARGET_ROOT/taskboard/.env"
-  fi
-
-  "$PYTHON_BIN" -m venv "$TARGET_ROOT/taskboard/.venv"
-  "$TARGET_ROOT/taskboard/.venv/bin/pip" install --upgrade pip
-  "$TARGET_ROOT/taskboard/.venv/bin/pip" install -r "$TARGET_ROOT/taskboard/backend/requirements.txt"
-
-  install_systemd_unit "$SOURCE_ROOT" "$TARGET_ROOT"
-  remove_obsolete_taskboard_units
-  remove_obsolete_embedded_watcher_unit
-  systemctl enable "$SERVICE_NAME"
-  systemctl restart "$SERVICE_NAME"
-
-  log "Systemd установка/обновление завершены."
-  log "Dashboard: http://<host>:8080/"
-  systemctl status "$SERVICE_NAME" --no-pager || true
-}
-
-install_or_update_docker() {
-  need_root
-  TARGET_ROOT="$(ask_value "Каталог установки runtime" "$TARGET_ROOT")"
-  ensure_dependencies docker
-  prepare_source_checkout
-
-  if confirm "Выполнить переход с legacy и удалить старые скрипты/unit'ы?" "no"; then
-    cleanup_legacy
-  fi
-
-  copy_runtime_bundle "$SOURCE_ROOT" "$TARGET_ROOT"
-  if [[ ! -f "$TARGET_ROOT/taskboard/.env.docker" ]]; then
-    install -m 0644 "$SOURCE_ROOT/taskboard/.env.docker.example" "$TARGET_ROOT/taskboard/.env.docker"
-  fi
-
-  (
-    cd "$TARGET_ROOT/taskboard"
-    docker_compose --env-file .env.docker up -d --build
-  )
-
-  log "Docker установка/обновление завершены."
-  log "Dashboard: http://<host>:8080/"
-}
-
-backup_path() {
-  local backup_root="$1"
-  local source="$2"
-  local target="$backup_root$source"
-  if [[ -e "$source" || -L "$source" ]]; then
-    install -d "$(dirname "$target")"
-    cp -a "$source" "$target"
-  fi
-}
-
-cleanup_legacy() {
-  need_root
-  local stamp backup_root legacy_backups=()
-  stamp="$(date +%Y%m%d-%H%M%S)"
-  backup_root="${BACKUP_ROOT:-$TARGET_ROOT/migration-backups/$stamp}"
-
-  shopt -s nullglob
-  legacy_backups=(/usr/local/bin/rclone-backup.sh.bak.*)
-  shopt -u nullglob
-
-  log "Будет сделан backup legacy-файлов в: $backup_root"
-  log "Legacy unit'ы: ${LEGACY_UNITS[*]}"
-  log "Legacy scripts: ${LEGACY_FILES[*]}"
-  if [[ "${#legacy_backups[@]}" -gt 0 ]]; then
-    log "Backup-файлы старого rclone-backup.sh: ${legacy_backups[*]}"
-  fi
-
-  if ! confirm "Продолжить backup + остановку + удаление legacy?" "no"; then
-    log "Legacy migration пропущена."
-    return 0
-  fi
-
-  install -d "$backup_root"
-  for unit in "${LEGACY_UNITS[@]}"; do
-    systemctl cat "$unit" > "$backup_root/${unit}.systemctl-cat.txt" 2>/dev/null || true
-    systemctl status "$unit" --no-pager > "$backup_root/${unit}.status.txt" 2>/dev/null || true
-    backup_path "$backup_root" "$SYSTEMD_DIR/$unit"
-  done
-  for path in "${LEGACY_FILES[@]}" "${legacy_backups[@]}"; do
-    backup_path "$backup_root" "$path"
-  done
-
-  for unit in "${LEGACY_UNITS[@]}"; do
-    systemctl disable --now "$unit" 2>/dev/null || true
-    rm -f "$SYSTEMD_DIR/$unit"
-  done
-  for path in "${LEGACY_FILES[@]}" "${legacy_backups[@]}"; do
-    rm -f -- "$path"
-  done
-  systemctl daemon-reload
-
-  log "Legacy migration завершена."
-  log "Backup snapshot: $backup_root"
-}
-
-uninstall_taskboard() {
-  need_root
-  TARGET_ROOT="$(ask_value "Каталог установленного runtime" "$TARGET_ROOT")"
-
-  log "Будет остановлен и отключен $SERVICE_NAME, если он установлен."
-  if confirm "Продолжить удаление taskboard-служб?" "no"; then
-    systemctl disable --now "$SERVICE_NAME" 2>/dev/null || true
-    rm -f "$SYSTEMD_DIR/$SERVICE_NAME"
-    systemctl daemon-reload
-    systemctl reset-failed "$SERVICE_NAME" 2>/dev/null || true
+@@ -420,90 +493,141 @@ uninstall_taskboard() {
   fi
 
   if [[ -f "$TARGET_ROOT/taskboard/docker-compose.yml" ]]; then
@@ -523,7 +273,11 @@ uninstall_taskboard() {
   fi
 
   if command_exists apt-get && [[ -f "$APT_INSTALLED_RECORD" ]]; then
-    mapfile -t purge_packages < <(awk 'NF{print $1}' "$APT_INSTALLED_RECORD")
+    local purge_packages=()
+    while IFS= read -r pkg; do
+      [[ -n "$pkg" ]] || continue
+      purge_packages+=("$pkg")
+    done < "$APT_INSTALLED_RECORD"
     if [[ "${#purge_packages[@]}" -gt 0 ]]; then
       log "Найден список apt-пакетов, установленных этим скриптом: ${purge_packages[*]}"
       if confirm "Попробовать apt purge этих пакетов?" "no"; then
@@ -541,9 +295,8 @@ uninstall_taskboard() {
 
 print_dependency_status() {
   local command_name package_name status_line
-  local -a base_commands=(git curl install)
   log "  зависимости:"
-  for command_name in "${base_commands[@]}" systemctl "$PYTHON_BIN" rclone docker; do
+  for command_name in git curl install systemctl "$PYTHON_BIN" rclone docker; do
     package_name="$(package_for_command "$command_name")"
     if command_exists "$command_name"; then
       status_line="${C_GREEN}ok${C_RESET}"
@@ -561,11 +314,9 @@ print_docker_status() {
   fi
   local container_state
   container_state="$(docker inspect -f '{{.State.Status}}' "$DOCKER_CONTAINER_NAME" 2>/dev/null || true)"
-  if [[ -n "$container_state" ]]; then
-    log "  docker: контейнер '$DOCKER_CONTAINER_NAME' найден (state=$container_state)"
-  else
-    log "  docker: контейнер '$DOCKER_CONTAINER_NAME' не найден"
-  fi
+  [[ -n "$container_state" ]] \
+    && log "  docker: контейнер '$DOCKER_CONTAINER_NAME' ${C_GREEN}найден${C_RESET} (state=$container_state)" \
+    || log "  docker: контейнер '$DOCKER_CONTAINER_NAME' ${C_RED}не найден${C_RESET}"
 }
 
 print_status() {
@@ -574,20 +325,13 @@ print_status() {
   if systemctl list-unit-files "$SERVICE_NAME" --no-legend >/dev/null 2>&1; then
     log "  systemd: $SERVICE_NAME ${C_GREEN}найден${C_RESET}"
     systemctl is-active --quiet "$SERVICE_NAME" && log "  active: yes" || log_warn "active: no"
-  else
+  fi
+  if ! systemctl list-unit-files "$SERVICE_NAME" --no-legend >/dev/null 2>&1; then
     log "  systemd: $SERVICE_NAME ${C_RED}не найден${C_RESET}"
   fi
-  if [[ -d "$TARGET_ROOT" ]]; then
-    log "  runtime: $TARGET_ROOT ${C_GREEN}найден${C_RESET}"
-  else
-    log "  runtime: $TARGET_ROOT ${C_RED}не найден${C_RESET}"
-  fi
-    log_ok "systemd: $SERVICE_NAME найден"
-    systemctl is-active --quiet "$SERVICE_NAME" && log "  active: yes" || log_warn "active: no"
-  else
-    log_warn "systemd: $SERVICE_NAME не найден"
-  fi
-  [[ -d "$TARGET_ROOT" ]] && log_ok "runtime: $TARGET_ROOT найден" || log_warn "runtime: $TARGET_ROOT не найден"
+  [[ -d "$TARGET_ROOT" ]] \
+    && log "  runtime: $TARGET_ROOT ${C_GREEN}найден${C_RESET}" \
+    || log "  runtime: $TARGET_ROOT ${C_RED}не найден${C_RESET}"
   print_docker_status
   print_dependency_status
   [[ -n "$SCRIPT_REPO_ROOT" ]] && log "  current git checkout: $SCRIPT_REPO_ROOT"

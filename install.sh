@@ -17,6 +17,11 @@ USE_STANDARD_SETTINGS="${USE_STANDARD_SETTINGS:-}"
 STANDARD_SETTINGS_INITIALIZED=0
 PYTHON_VENV_CHECK_CACHE=""
 
+invalidate_runtime_caches() {
+  PYTHON_VENV_CHECK_CACHE=""
+  hash -r 2>/dev/null || true
+}
+
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
 SCRIPT_ARGS=("$@")
@@ -356,6 +361,7 @@ install_packages() {
     fi
     log "Выполняю: apt-get install -y ${packages[*]}"
     DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
+    invalidate_runtime_caches
     if [[ "${#to_record[@]}" -gt 0 ]]; then
       record_apt_packages "${to_record[@]}"
       log_ok "Сохранён список новых apt-пакетов в $APT_INSTALLED_RECORD"
@@ -786,7 +792,9 @@ uninstall_taskboard() {
       log "Найден список apt-пакетов, установленных этим скриптом: ${expanded_purge_packages[*]}"
       if confirm "Попробовать apt purge этих пакетов?" "no"; then
         apt-get purge -y "${expanded_purge_packages[@]}" || log_warn "apt purge завершился с ошибкой."
+        invalidate_runtime_caches
         apt-get autoremove -y || log_warn "apt autoremove завершился с ошибкой."
+        invalidate_runtime_caches
       fi
     fi
 
@@ -840,6 +848,7 @@ print_docker_status() {
 }
 
 print_status() {
+  invalidate_runtime_caches
   log ""
   log_section "Текущий статус"
   if has_working_systemd; then

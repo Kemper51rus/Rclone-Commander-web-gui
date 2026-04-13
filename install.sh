@@ -9,6 +9,9 @@ SYSTEMD_DIR="${SYSTEMD_DIR:-/etc/systemd/system}"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 SERVICE_NAME="${SERVICE_NAME:-rclone-taskboard.service}"
 SOURCE_CHECKOUT_DEFAULT="${SOURCE_CHECKOUT_DEFAULT:-/opt/rclone-taskboard-src}"
+DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-rclone-taskboard}"
+STATE_DIR="${STATE_DIR:-/var/lib/rclone-taskboard-installer}"
+APT_INSTALLED_RECORD="$STATE_DIR/apt-installed-by-install-sh.txt"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)"
@@ -30,8 +33,42 @@ log() {
   printf '%s\n' "$*"
 }
 
+setup_colors() {
+  if [[ -t 1 ]] && command_exists tput; then
+    local colors
+    colors="$(tput colors 2>/dev/null || echo 0)"
+    if [[ "$colors" =~ ^[0-9]+$ ]] && (( colors >= 8 )); then
+      C_RESET="$(tput sgr0)"
+      C_BOLD="$(tput bold)"
+      C_RED="$(tput setaf 1)"
+      C_GREEN="$(tput setaf 2)"
+      C_YELLOW="$(tput setaf 3)"
+      C_BLUE="$(tput setaf 4)"
+      C_CYAN="$(tput setaf 6)"
+      return
+    fi
+  fi
+  C_RESET=""; C_BOLD=""; C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_CYAN=""
+}
+
+log_section() {
+  printf '%b\n' "${C_BLUE}${C_BOLD}== $* ==${C_RESET}"
+}
+
+log_ok() {
+  printf '%b\n' "${C_GREEN}OK${C_RESET}  $*"
+}
+
+log_warn() {
+  printf '%b\n' "${C_YELLOW}WARN${C_RESET} $*"
+}
+
+log_err() {
+  printf '%b\n' "${C_RED}ERR${C_RESET} $*"
+}
+
 die() {
-  printf 'ERROR: %s\n' "$*" >&2
+  log_err "ERROR: $*"
   exit 1
 }
 
@@ -94,19 +131,55 @@ safe_rm_rf() {
   rm -rf --one-file-system -- "$path"
 }
 
+record_apt_packages() {
+  local packages=("$@")
+  [[ "${#packages[@]}" -gt 0 ]] || return 0
+  install -d "$STATE_DIR"
+  touch "$APT_INSTALLED_RECORD"
+  printf '%s\n' "${packages[@]}" >> "$APT_INSTALLED_RECORD"
+  sort -u "$APT_INSTALLED_RECORD" -o "$APT_INSTALLED_RECORD"
+}
+
 install_packages() {
   local packages=("$@")
   [[ "${#packages[@]}" -gt 0 ]] || return 0
   if command_exists apt-get; then
-    apt-get update
+    log_section "Установка зависимостей через apt"
+    log "Пакеты к установке: ${packages[*]}"
+    local to_record=() pkg
+    for pkg in "${packages[@]}"; do
+      if dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -q "install ok installed"; then
+        log_ok "$pkg уже установлен"
+      else
+        log_warn "$pkg будет установлен"
+        to_record+=("$pkg")
+      fi
+    done
+    log "Выполняю: apt-get update"
+    if ! apt-get update; then
+      log_warn "apt-get update завершился с ошибкой. Продолжаю установку по текущему кэшу APT."
+    fi
+    log "Выполняю: apt-get install -y ${packages[*]}"
     DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
+    if [[ "${#to_record[@]}" -gt 0 ]]; then
+      record_apt_packages "${to_record[@]}"
+      log_ok "Сохранён список новых apt-пакетов в $APT_INSTALLED_RECORD"
+    fi
   elif command_exists dnf; then
+    log_section "Установка зависимостей через dnf"
+    log "Выполняю: dnf install -y ${packages[*]}"
     dnf install -y "${packages[@]}"
   elif command_exists yum; then
+    log_section "Установка зависимостей через yum"
+    log "Выполняю: yum install -y ${packages[*]}"
     yum install -y "${packages[@]}"
   elif command_exists zypper; then
+    log_section "Установка зависимостей через zypper"
+    log "Выполняю: zypper --non-interactive install ${packages[*]}"
     zypper --non-interactive install "${packages[@]}"
   elif command_exists pacman; then
+    log_section "Установка зависимостей через pacman"
+    log "Выполняю: pacman -Sy --noconfirm ${packages[*]}"
     pacman -Sy --noconfirm "${packages[@]}"
   else
     die "Не найден поддерживаемый package manager. Установите вручную: ${packages[*]}"
@@ -154,11 +227,11 @@ ensure_dependencies() {
   fi
 
   if [[ "${#missing_packages[@]}" -eq 0 ]]; then
-    log "Зависимости для режима '$mode' выглядят установленными."
+    log_ok "Зависимости для режима '$mode' выглядят установленными."
     return 0
   fi
 
-  log "Не хватает зависимостей для режима '$mode': ${missing_packages[*]}"
+  log_warn "Не хватает зависимостей для режима '$mode': ${missing_packages[*]}"
   if confirm "Доустановить зависимости автоматически?" "yes"; then
     install_packages "${missing_packages[@]}"
   else
@@ -442,19 +515,68 @@ uninstall_taskboard() {
     fi
   fi
 
+  if command_exists apt-get && [[ -f "$APT_INSTALLED_RECORD" ]]; then
+    local purge_packages=()
+    while IFS= read -r pkg; do
+      [[ -n "$pkg" ]] || continue
+      purge_packages+=("$pkg")
+    done < "$APT_INSTALLED_RECORD"
+    if [[ "${#purge_packages[@]}" -gt 0 ]]; then
+      log "Найден список apt-пакетов, установленных этим скриптом: ${purge_packages[*]}"
+      if confirm "Попробовать apt purge этих пакетов?" "no"; then
+        apt-get purge -y "${purge_packages[@]}" || true
+        apt-get autoremove -y || true
+      fi
+    fi
+    if confirm "Удалить файл состояния установленных пакетов $APT_INSTALLED_RECORD?" "yes"; then
+      rm -f "$APT_INSTALLED_RECORD"
+    fi
+  fi
+
   log "Uninstall завершён."
+}
+
+print_dependency_status() {
+  local command_name package_name status_line
+  log "  зависимости:"
+  for command_name in git curl install systemctl "$PYTHON_BIN" rclone docker; do
+    package_name="$(package_for_command "$command_name")"
+    if command_exists "$command_name"; then
+      status_line="${C_GREEN}ok${C_RESET}"
+    else
+      status_line="${C_RED}missing${C_RESET}"
+    fi
+    printf '    - %-14s : %b (pkg: %s)\n' "$command_name" "$status_line" "$package_name"
+  done
+}
+
+print_docker_status() {
+  if ! command_exists docker; then
+    log "  docker: команда docker не найдена"
+    return
+  fi
+  local container_state
+  container_state="$(docker inspect -f '{{.State.Status}}' "$DOCKER_CONTAINER_NAME" 2>/dev/null || true)"
+  [[ -n "$container_state" ]] \
+    && log "  docker: контейнер '$DOCKER_CONTAINER_NAME' ${C_GREEN}найден${C_RESET} (state=$container_state)" \
+    || log "  docker: контейнер '$DOCKER_CONTAINER_NAME' ${C_RED}не найден${C_RESET}"
 }
 
 print_status() {
   log ""
-  log "Текущий статус:"
+  log_section "Текущий статус"
   if systemctl list-unit-files "$SERVICE_NAME" --no-legend >/dev/null 2>&1; then
-    log "  systemd: $SERVICE_NAME найден"
-    systemctl is-active --quiet "$SERVICE_NAME" && log "  active: yes" || log "  active: no"
-  else
-    log "  systemd: $SERVICE_NAME не найден"
+    log "  systemd: $SERVICE_NAME ${C_GREEN}найден${C_RESET}"
+    systemctl is-active --quiet "$SERVICE_NAME" && log "  active: yes" || log_warn "active: no"
   fi
-  [[ -d "$TARGET_ROOT" ]] && log "  runtime: $TARGET_ROOT найден" || log "  runtime: $TARGET_ROOT не найден"
+  if ! systemctl list-unit-files "$SERVICE_NAME" --no-legend >/dev/null 2>&1; then
+    log "  systemd: $SERVICE_NAME ${C_RED}не найден${C_RESET}"
+  fi
+  [[ -d "$TARGET_ROOT" ]] \
+    && log "  runtime: $TARGET_ROOT ${C_GREEN}найден${C_RESET}" \
+    || log "  runtime: $TARGET_ROOT ${C_RED}не найден${C_RESET}"
+  print_docker_status
+  print_dependency_status
   [[ -n "$SCRIPT_REPO_ROOT" ]] && log "  current git checkout: $SCRIPT_REPO_ROOT"
   log ""
 }
@@ -482,6 +604,8 @@ MENU
     esac
   done
 }
+
+setup_colors
 
 case "${1:-}" in
   systemd) install_or_update_systemd ;;

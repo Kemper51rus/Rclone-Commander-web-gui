@@ -49,10 +49,11 @@ setup_colors() {
       C_YELLOW="$(tput setaf 3)"
       C_BLUE="$(tput setaf 4)"
       C_CYAN="$(tput setaf 6)"
+      C_DIM="$(tput dim 2>/dev/null || true)"
       return
     fi
   fi
-  C_RESET=""; C_BOLD=""; C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_CYAN=""
+  C_RESET=""; C_BOLD=""; C_RED=""; C_GREEN=""; C_YELLOW=""; C_BLUE=""; C_CYAN=""; C_DIM=""
 }
 
 log_section() {

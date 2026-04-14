@@ -38,4 +38,4 @@ bash <(curl -Ls https://raw.githubusercontent.com/Kemper51rus/Rclone-taskboard-w
 - [Deployment](docs/07-deployment.md)
 - [Development notes](docs/08-development-notes.md)
 - [Legacy migration](docs/09-legacy-migration.md)
-- [Runtime-каталог `taskboard/`](docs/10-taskboard-runtime.md)
+- [Runtime-каталог](docs/10-taskboard-runtime.md)

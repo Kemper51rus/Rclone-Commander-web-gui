@@ -605,7 +605,7 @@ def health() -> dict[str, Any]:
 def state() -> dict[str, Any]:
     snapshot = orchestrator.snapshot()
     snapshot["token_required"] = bool(settings.api_token)
-    snapshot["latest_runs"] = storage.list_runs(limit=15)
+    snapshot["latest_runs"] = storage.list_runs(limit=999)
     snapshot["latest_job_runs"] = storage.latest_job_run_map()
     snapshot["backup_jobs"] = catalog.list_backup_jobs()
     snapshot["watcher"] = event_watcher.snapshot()
@@ -1294,7 +1294,7 @@ def browse_directories(path: str | None = None, include_files: bool = False) -> 
 
 
 @app.get("/api/runs")
-def list_runs(limit: int = Query(default=50, ge=1, le=500)) -> dict[str, Any]:
+def list_runs(limit: int = Query(default=50, ge=1, le=999)) -> dict[str, Any]:
     return {"runs": storage.list_runs(limit=limit)}
 
 

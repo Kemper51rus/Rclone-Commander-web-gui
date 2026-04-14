@@ -135,7 +135,7 @@ Cloud settings читаются из `rclone.conf`, но приложение с
 
 ### Query params
 
-- `limit` для `GET /api/runs`: от `1` до `500`, по умолчанию `50`
+- `limit` для `GET /api/runs`: от `1` до `999`, по умолчанию `50`
 
 ### Важные поля
 

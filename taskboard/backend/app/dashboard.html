@@ -27,9 +27,15 @@
       --radius-sm: 16px;
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       --sans: "Trebuchet MS", "Segoe UI", sans-serif;
+      --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-snappy: cubic-bezier(0.25, 0.8, 0.25, 1);
+      --motion-fast: 180ms;
+      --motion-standard: 320ms;
+      --motion-panel: 420ms;
     }
     * { box-sizing: border-box; }
     html {
+      scroll-behavior: smooth;
       scrollbar-width: none;
     }
     body {
@@ -44,6 +50,9 @@
       background-attachment: fixed;
       scrollbar-width: none;
       -ms-overflow-style: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
     }
     body::-webkit-scrollbar,
     .scroll-body::-webkit-scrollbar,
@@ -76,6 +85,20 @@
       box-shadow: var(--shadow);
       backdrop-filter: blur(14px);
       position: relative;
+      backface-visibility: hidden;
+      transition:
+        transform var(--motion-standard) var(--ease-smooth),
+        opacity var(--motion-standard) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        box-shadow var(--motion-standard) var(--ease-smooth),
+        background var(--motion-standard) var(--ease-smooth);
+    }
+    .hero:not([hidden]),
+    .panel:not([hidden]),
+    .logging-toolbar:not([hidden]),
+    .logging-summary:not([hidden]),
+    .logging-list-wrap:not([hidden]) {
+      animation: surface-enter var(--motion-panel) var(--ease-smooth) both;
     }
     .hero {
       padding: 28px;
@@ -199,11 +222,17 @@
       background: transparent;
       color: var(--text);
       cursor: pointer;
-      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, color 160ms ease;
+      backface-visibility: hidden;
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-fast) var(--ease-snappy),
+        box-shadow var(--motion-standard) var(--ease-smooth),
+        color var(--motion-fast) var(--ease-snappy);
     }
     button:hover,
     .button-like:hover {
-      transform: translateY(-1px);
+      transform: translate3d(0, -1px, 0);
       border-color: rgba(124, 224, 255, 0.45);
       background: rgba(255, 255, 255, 0.03);
       box-shadow: inset 0 0 0 1px rgba(124, 224, 255, 0.12);
@@ -242,6 +271,13 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 12px;
+      backface-visibility: hidden;
+      transition:
+        transform var(--motion-standard) var(--ease-smooth),
+        opacity var(--motion-standard) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .token-card input,
     .editor input,
@@ -256,7 +292,10 @@
       min-height: 46px;
       line-height: 1.3;
       box-shadow: inset 0 0 0 1px transparent;
-      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      transition:
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-fast) var(--ease-snappy),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .select-shell {
       position: relative;
@@ -279,7 +318,10 @@
       text-align: left;
       cursor: pointer;
       box-shadow: inset 0 0 0 1px transparent;
-      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+      transition:
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-fast) var(--ease-snappy),
+        box-shadow var(--motion-standard) var(--ease-smooth);
       position: relative;
     }
     .select-trigger::after {
@@ -335,6 +377,7 @@
     .select-shell.is-open .select-menu {
       display: grid;
       gap: 4px;
+      animation: menu-enter var(--motion-fast) var(--ease-smooth) both;
     }
     .select-search {
       width: 100%;
@@ -497,6 +540,11 @@
       border-radius: 16px;
       border: 1px solid var(--line);
       background: rgba(255, 255, 255, 0.03);
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .ui-tooltip {
       position: relative;
@@ -515,7 +563,7 @@
       border-color: rgba(10, 18, 28, 0.96) transparent transparent transparent;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 140ms ease;
+      transition: opacity var(--motion-fast) var(--ease-snappy);
       z-index: 20;
     }
     .ui-tooltip.has-tooltip::after {
@@ -539,7 +587,7 @@
       letter-spacing: normal;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 140ms ease;
+      transition: opacity var(--motion-fast) var(--ease-snappy);
       z-index: 20;
     }
     .ui-tooltip.has-tooltip:hover::before,
@@ -631,6 +679,12 @@
       background:
         linear-gradient(135deg, rgba(124, 224, 255, 0.09), transparent 32%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018));
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        opacity var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .copy-progress-head,
     .copy-progress-meta {
@@ -669,7 +723,7 @@
       background:
         linear-gradient(90deg, rgba(124, 224, 255, 0.9), rgba(150, 255, 218, 0.92));
       box-shadow: 0 0 24px rgba(124, 224, 255, 0.24);
-      transition: width 320ms ease;
+      transition: width var(--motion-standard) var(--ease-smooth);
     }
     .copy-progress-fill.indeterminate {
       width: 42%;
@@ -808,6 +862,12 @@
         linear-gradient(180deg, rgba(15, 28, 42, 0.94), rgba(9, 18, 28, 0.9));
       display: grid;
       gap: 6px;
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        opacity var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .stats-card-label {
       color: var(--soft);
@@ -852,6 +912,9 @@
     }
     .log-browser-row.is-selected td {
       background: rgba(124, 224, 255, 0.08);
+    }
+    .log-browser-row td {
+      transition: background var(--motion-fast) var(--ease-snappy);
     }
     .logging-summary,
     .logging-viewer-meta {
@@ -908,6 +971,28 @@
       from { transform: translateX(-110%); }
       to { transform: translateX(260%); }
     }
+    @keyframes surface-enter {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 10px, 0) scale(0.985);
+        filter: blur(2px);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+        filter: blur(0);
+      }
+    }
+    @keyframes menu-enter {
+      from {
+        opacity: 0;
+        transform: translate3d(0, -6px, 0) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
     .main-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.12fr) minmax(430px, 1fr);
@@ -935,6 +1020,8 @@
       min-height: 0;
     }
     .runs-list-wrap {
+      display: flex;
+      flex-direction: column;
       flex: 1 1 auto;
       min-height: 0;
       background: transparent;
@@ -945,11 +1032,16 @@
       overflow: visible;
     }
     #runsPanel[data-constrained="true"] .runs-list-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
       height: 100%;
       overflow-y: auto;
       overflow-x: hidden;
       scrollbar-width: none;
       -ms-overflow-style: none;
+    }
+    #runsPanel[data-constrained="true"] .runs-list-wrap {
+      overflow: hidden;
     }
     #runsPanel[data-constrained="true"] .runs-list-scroll::-webkit-scrollbar {
       width: 0;
@@ -989,13 +1081,19 @@
       background:
         linear-gradient(135deg, rgba(124, 224, 255, 0.06), transparent 34%),
         linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
-      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+      backface-visibility: hidden;
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        opacity var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .job-card.clickable {
       cursor: pointer;
     }
     .job-card.clickable:hover {
-      transform: translateY(-1px);
+      transform: translate3d(0, -2px, 0);
       border-color: var(--line-strong);
     }
     .job-card.disabled {
@@ -1053,6 +1151,11 @@
       border: 1px solid var(--line);
       color: var(--muted);
       background: rgba(255, 255, 255, 0.03);
+      transition:
+        color var(--motion-fast) var(--ease-snappy),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-fast) var(--ease-snappy),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .pill-retention {
       border-color: rgba(151, 255, 63, 0.34);
@@ -1212,11 +1315,80 @@
       flex-wrap: wrap;
       margin-top: 16px;
     }
+    .editor-collapsible {
+      padding: 0;
+      overflow: hidden;
+    }
+    .editor-collapsible > summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px;
+      cursor: pointer;
+      list-style: none;
+      transition:
+        background var(--motion-fast) var(--ease-snappy),
+        color var(--motion-fast) var(--ease-snappy);
+    }
+    .editor-collapsible > summary::-webkit-details-marker {
+      display: none;
+    }
+    .editor-collapsible > summary:hover,
+    .editor-collapsible > summary:focus-visible {
+      outline: none;
+      background: rgba(255, 255, 255, 0.035);
+    }
+    .editor-collapsible > summary::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(45deg);
+      transition:
+        transform var(--motion-standard) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy);
+      flex: 0 0 auto;
+      margin-right: 4px;
+    }
+    .editor-collapsible[open] > summary::after {
+      transform: rotate(225deg);
+    }
+    .editor-collapsible > summary:hover::after,
+    .editor-collapsible > summary:focus-visible::after {
+      border-color: var(--accent-2);
+    }
+    .editor-collapsible-body {
+      padding: 0 16px 16px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translate3d(0, -6px, 0);
+      will-change: height, opacity, transform;
+      transition:
+        height var(--motion-panel) var(--ease-smooth),
+        opacity var(--motion-standard) var(--ease-smooth),
+        transform var(--motion-standard) var(--ease-smooth);
+    }
+    .editor-collapsible[open] > .editor-collapsible-body {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+    .editor-collapsible.is-collapsing > .editor-collapsible-body {
+      opacity: 0;
+      transform: translate3d(0, -6px, 0);
+    }
     .subpanel {
       padding: 16px;
       border-radius: 18px;
       border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(16, 24, 36, 0.84), rgba(10, 17, 26, 0.78));
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        opacity var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .subpanel + .subpanel {
       margin-top: 14px;
@@ -1258,6 +1430,11 @@
       border: 1px solid var(--line);
       border-radius: 14px;
       background: rgba(255, 255, 255, 0.03);
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        opacity var(--motion-fast) var(--ease-smooth),
+        border-color var(--motion-fast) var(--ease-snappy),
+        background var(--motion-fast) var(--ease-snappy);
     }
     .exclude-path-item.empty {
       grid-template-columns: minmax(0, 1fr);
@@ -1318,6 +1495,9 @@
       background: rgba(4, 8, 14, 0.72);
       backdrop-filter: blur(10px);
     }
+    .modal-backdrop:not([hidden]) {
+      animation: surface-enter var(--motion-standard) var(--ease-smooth) both;
+    }
     .modal-backdrop[hidden] {
       display: none;
     }
@@ -1335,6 +1515,14 @@
       display: grid;
       grid-template-rows: auto auto auto minmax(0, 1fr);
       gap: 12px;
+      backface-visibility: hidden;
+      transition:
+        transform var(--motion-standard) var(--ease-smooth),
+        opacity var(--motion-standard) var(--ease-smooth),
+        box-shadow var(--motion-standard) var(--ease-smooth);
+    }
+    .modal-backdrop:not([hidden]) .browse {
+      animation: surface-enter var(--motion-panel) var(--ease-smooth) both;
     }
     .browse-toolbar {
       display: flex;
@@ -1386,6 +1574,10 @@
       background: transparent;
       cursor: pointer;
       user-select: none;
+      transition:
+        transform var(--motion-fast) var(--ease-smooth),
+        background var(--motion-fast) var(--ease-snappy),
+        box-shadow var(--motion-standard) var(--ease-smooth);
     }
     .browse-item:last-child {
       border-bottom: none;
@@ -1426,6 +1618,16 @@
       border-radius: 18px;
       border: 1px dashed var(--line);
       color: var(--soft);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+      }
     }
     @media (max-width: 1100px) {
       .hero-top {
@@ -1504,9 +1706,9 @@
         </div>
         <button id="cloudsToggle" onclick="toggleClouds()">Облака</button>
         <button id="queuesToggle" onclick="toggleQueues()">Очереди</button>
-        <button id="statsToggle" onclick="toggleStatistics()">Статистика</button>
         <button id="watcherToggle" onclick="toggleWatcher()">Наблюдатель</button>
         <button id="loggingToggle" onclick="toggleLogging()">Логи</button>
+        <button id="statsToggle" onclick="toggleStatistics()">Статистика</button>
         <button id="gotifyToggle" onclick="toggleGotify()">Уведомления</button>
       </div>
     </section>
@@ -1707,13 +1909,12 @@
             </div>
           </div>
 
-	          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;" data-job-kind="backup">
-	            <div class="panel-header" style="margin-bottom:12px;">
-	              <div>
-	                <h3>Дополнительные rclone-опции</h3>
-              </div>
-            </div>
-            <div class="editor-grid">
+	          <details class="panel editor-collapsible" style="margin-top:16px; margin-bottom:0;" data-job-kind="backup">
+	            <summary>
+                <h3>Дополнительные rclone-опции</h3>
+              </summary>
+            <div class="editor-collapsible-body">
+              <div class="editor-grid">
               <div class="field">
                 <label for="maxAge">max-age</label>
                 <input id="maxAge" placeholder="7d" />
@@ -1801,16 +2002,16 @@
                 <label for="commandPreview">Предпросмотр команды</label>
                 <textarea id="commandPreview" readonly></textarea>
               </div>
-	            </div>
-	          </div>
-
-          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;" data-job-kind="backup" data-retention-block="true">
-            <div class="panel-header" style="margin-bottom:12px;">
-              <div>
-                <h3>Очистка в облаке</h3>
               </div>
             </div>
-            <div class="editor-grid">
+	          </details>
+
+          <details class="panel editor-collapsible" style="margin-top:16px; margin-bottom:0;" data-job-kind="backup" data-retention-block="true">
+            <summary>
+              <h3>Очистка в облаке</h3>
+            </summary>
+            <div class="editor-collapsible-body">
+              <div class="editor-grid">
               <div class="field">
                 <button type="button" class="toggle-chip" id="retentionEnabled" aria-pressed="false">Включить очистку после успешного backup</button>
               </div>
@@ -1872,8 +2073,9 @@
                 <label for="retentionExtraArgs">extra args для очистки</label>
                 <textarea id="retentionExtraArgs" placeholder="--rmdirs"></textarea>
               </div>
+              </div>
             </div>
-          </div>
+          </details>
 
           <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;" data-job-kind="command">
             <div class="panel-header" style="margin-bottom:12px;">
@@ -1886,15 +2088,18 @@
                 <label for="commandList">Команда по аргументам, каждая строка отдельным элементом</label>
                 <textarea id="commandList" placeholder="rclone&#10;delete&#10;mail:/MYSPACE/BACKUPS/Proxmox&#10;--min-age&#10;7d"></textarea>
               </div>
+              <div class="field full">
+                <button type="button" class="toggle-chip" id="commandForceRcloneLog" aria-pressed="false">Писать rclone-лог для команды</button>
+                <div class="field-meta">Работает для command-задач, у которых первая строка команды — `rclone`. Backend сам добавит `--log-file` к step-логу.</div>
+              </div>
             </div>
           </div>
 
-	          <div class="panel" style="margin-top:16px; margin-bottom:0; padding:16px;">
-	            <div class="panel-header" style="margin-bottom:12px;">
-	              <div>
-	                <h3>Уведомления Gotify</h3>
-	              </div>
-	            </div>
+	          <details class="panel editor-collapsible" style="margin-top:16px; margin-bottom:0;">
+	            <summary>
+                <h3>Уведомления Gotify</h3>
+              </summary>
+              <div class="editor-collapsible-body">
 		            <div class="editor-grid">
 		              <div class="field">
 		                <button type="button" class="toggle-chip" id="jobNotifySuccess" aria-pressed="false">Уведомлять об успехе</button>
@@ -1910,8 +2115,9 @@
 	                <label for="jobNotifyTitle">Свой заголовок уведомления</label>
 	                <input id="jobNotifyTitle" placeholder="например: Photo backup" />
 	              </div>
-	            </div>
-	          </div>
+	              </div>
+              </div>
+	          </details>
 	
           <div class="editor-actions" style="justify-content:flex-end;">
             <button class="ghost" id="deleteButton" onclick="deleteCurrentJob()" disabled>Удалить</button>
@@ -2157,6 +2363,7 @@
       showWatcher: false,
       creatingNewJob: false,
       editingKey: null,
+      editorCollapsibleKey: null,
       keyEditedManually: false,
       toastTimer: null,
       toastHideTimer: null,
@@ -2743,12 +2950,10 @@
     function updateRunsPanelHeight() {
       const jobsPanel = document.getElementById("jobsPanel");
       const runsPanel = document.getElementById("runsPanel");
-      const rightSlot = document.getElementById("historySlotRight");
-      if (!jobsPanel || !runsPanel || !rightSlot) return;
+      if (!jobsPanel || !runsPanel) return;
 
       const isWideLayout = window.innerWidth > 1100;
-      const isRightAligned = runsPanel.parentElement === rightSlot;
-      if (!isWideLayout || !isRightAligned) {
+      if (!isWideLayout) {
         runsPanel.style.height = "";
         runsPanel.dataset.constrained = "false";
         return;
@@ -4630,7 +4835,7 @@
         no_traverse: isTogglePressed("jobNoTraverse"),
         debug_dump: normalizeDebugDump(document.getElementById("jobDebugDump").value),
         mailru_safe_preset: isTogglePressed("jobMailruSafePreset"),
-        force_rclone_log: isTogglePressed("jobForceRcloneLog"),
+        force_rclone_log: isTogglePressed("jobForceRcloneLog") || isTogglePressed("commandForceRcloneLog"),
         exclude: formValue("excludeList").split("\n").map((item) => item.trim()).filter(Boolean),
         exclude_paths: state.excludePathEntries.map((entry) => ({ ...entry })),
         extra_args: formValue("extraArgs").split("\n").map((item) => item.trim()).filter(Boolean),
@@ -4677,6 +4882,7 @@
       setTogglePressed("jobFastList", options.fast_list ?? false);
       setTogglePressed("jobNoTraverse", options.no_traverse ?? false);
       setTogglePressed("jobForceRcloneLog", options.force_rclone_log ?? false);
+      setTogglePressed("commandForceRcloneLog", options.force_rclone_log ?? false);
       document.getElementById("excludeList").value = (options.exclude || []).join("\n");
       state.excludePathEntries = Array.isArray(options.exclude_paths)
         ? options.exclude_paths.map((entry) => normalizeExcludePathEntry(entry)).filter(Boolean)
@@ -4769,6 +4975,102 @@
       const titleValue = formValue("jobTitle");
       const baseKey = titleValue ? slugifyKey(titleValue) : defaultKeyBase();
       document.getElementById("jobKey").value = makeUniqueJobKey(baseKey);
+    }
+
+    function cleanupEditorCollapsible(details, body) {
+      details.classList.remove("is-collapsing");
+      body.style.height = "";
+      body.style.opacity = "";
+      body.style.transform = "";
+      body.style.overflow = "";
+      details.__collapseCleanup = null;
+    }
+
+    function setEditorCollapsibleOpen(details, open, options = {}) {
+      if (!details) return;
+      const body = [...details.children].find((node) => node.classList?.contains("editor-collapsible-body"));
+      if (!body) {
+        details.open = open;
+        return;
+      }
+      if (details.__collapseCleanup) {
+        details.__collapseCleanup();
+      }
+
+      const { animate = true } = options;
+      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      if (!animate || reduceMotion) {
+        details.open = open;
+        cleanupEditorCollapsible(details, body);
+        return;
+      }
+      if (details.open === open) return;
+
+      body.style.overflow = "hidden";
+      if (open) {
+        details.open = true;
+        details.classList.remove("is-collapsing");
+        body.style.height = "0px";
+        body.style.opacity = "0";
+        body.style.transform = "translate3d(0, -6px, 0)";
+        requestAnimationFrame(() => {
+          body.style.height = `${body.scrollHeight}px`;
+          body.style.opacity = "";
+          body.style.transform = "";
+        });
+      } else {
+        body.style.height = `${body.scrollHeight}px`;
+        body.style.opacity = "1";
+        body.style.transform = "translate3d(0, 0, 0)";
+        details.classList.add("is-collapsing");
+        void body.offsetHeight;
+        requestAnimationFrame(() => {
+          body.style.height = "0px";
+          body.style.opacity = "0";
+          body.style.transform = "translate3d(0, -6px, 0)";
+        });
+      }
+
+      let fallbackTimer = null;
+      const finish = (event = null) => {
+        if (event && (event.target !== body || event.propertyName !== "height")) return;
+        body.removeEventListener("transitionend", finish);
+        if (fallbackTimer) {
+          window.clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+        if (!open) {
+          details.open = false;
+        }
+        cleanupEditorCollapsible(details, body);
+      };
+      details.__collapseCleanup = () => {
+        body.removeEventListener("transitionend", finish);
+        if (fallbackTimer) {
+          window.clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+        cleanupEditorCollapsible(details, body);
+      };
+      body.addEventListener("transitionend", finish);
+      fallbackTimer = window.setTimeout(() => finish(), 650);
+    }
+
+    function bindEditorCollapsibles() {
+      document.querySelectorAll("#editorPanel .editor-collapsible > summary").forEach((summary) => {
+        if (summary.dataset.bound === "true") return;
+        summary.dataset.bound = "true";
+        summary.addEventListener("click", (event) => {
+          event.preventDefault();
+          setEditorCollapsibleOpen(summary.parentElement, !summary.parentElement.open);
+        });
+      });
+    }
+
+    function resetEditorCollapsibles() {
+      document.querySelectorAll("#editorPanel .editor-collapsible").forEach((node) => {
+        setEditorCollapsibleOpen(node, false, { animate: false });
+      });
     }
 
     function setEditorVisibility(visible) {
@@ -4877,6 +5179,9 @@
 
     function fillForm(job, options = {}) {
       const showEditor = options.showEditor ?? Boolean(job);
+      const collapsibleKey = showEditor ? (job?.key || "__new__") : null;
+      const shouldResetCollapsibles = showEditor && state.editorCollapsibleKey !== collapsibleKey;
+      state.editorCollapsibleKey = collapsibleKey;
       state.creatingNewJob = !job && showEditor;
       state.editingKey = job ? job.key : null;
       if (job && state.showGotify) {
@@ -4904,6 +5209,9 @@
         renderWatcherPanel();
       }
       setEditorVisibility(showEditor);
+      if (shouldResetCollapsibles) {
+        resetEditorCollapsibles();
+      }
       updateRunsLayout();
       const label = job?.display_title || job?.title || job?.description;
       document.getElementById("editorTitle").textContent = job ? `Редактирование: ${label}` : "Новая задача";
@@ -4965,6 +5273,7 @@
       document.getElementById("scheduleMinute").value = 0;
       setTogglePressed("jobWatcherEnabled", false);
       setTogglePressed("retentionEnabled", false);
+      setTogglePressed("commandForceRcloneLog", false);
       document.getElementById("retentionMinAge").value = "";
       document.getElementById("retentionExcludeList").value = "";
       document.getElementById("retentionExtraArgs").value = "";
@@ -5955,7 +6264,7 @@
       updateLoggingPanelHeight();
     });
 
-    ["retentionEnabled", "jobNotifySuccess", "jobNotifyFailure", "jobWatcherEnabled", "jobMailruSafePreset", "jobFastList", "jobNoTraverse", "jobForceRcloneLog", "retentionMailruSafePreset", "retentionFastList", "retentionNoTraverse"].forEach((id) => {
+    ["retentionEnabled", "jobNotifySuccess", "jobNotifyFailure", "jobWatcherEnabled", "jobMailruSafePreset", "jobFastList", "jobNoTraverse", "jobForceRcloneLog", "commandForceRcloneLog", "retentionMailruSafePreset", "retentionFastList", "retentionNoTraverse"].forEach((id) => {
       bindToggleChip(id, () => collectFormJob());
     });
 
@@ -6027,6 +6336,7 @@
     });
 
     document.querySelectorAll(".editor select, #globalBandwidthLimit, #loggingPanel select, #statsPanel select").forEach((select) => initCustomSelect(select));
+    bindEditorCollapsibles();
     bindRunsHistoryTooltipLayer();
     refreshAll();
     setInterval(() => {

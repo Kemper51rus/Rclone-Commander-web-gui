@@ -172,7 +172,7 @@
 widget:
   type: customapi
   url: http://100.100.0.243:8080/api/homepage
-  refreshInterval: 5000
+  refreshInterval: 500
   mappings:
     - field: total_copy_speed_megabits_per_second
       label: Speed
